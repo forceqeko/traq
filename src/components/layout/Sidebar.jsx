@@ -11,7 +11,6 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
-  ShieldCheck,
 } from 'lucide-react';
 
 export default function Sidebar({ collapsed, onToggle }) {
@@ -26,10 +25,11 @@ export default function Sidebar({ collapsed, onToggle }) {
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
-      {/* Sidebar Header / Brand */}
       <div className={styles.sidebarHeader}>
         <div className={styles.brand}>
-          <div className={styles.brandLogo}>T</div>
+          <div className={styles.brandLogo} title="TRAQ">
+            <img src="/logo-traq.png" alt="Logo TRAQ" className={styles.brandLogoImg} />
+          </div>
           {!collapsed && (
             <div className={styles.brandText}>
               <span className={styles.brandName}>TRAQ</span>
@@ -161,17 +161,17 @@ export default function Sidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* Sidebar Footer */}
-      {!collapsed && (
-        <div className={styles.sidebarFooter}>
-          <div className={styles.orgLogo}>
-            <ShieldCheck size={18} />
-          </div>
+      <div className={styles.sidebarFooter}>
+        <div className={styles.orgLogo} title="Badan Karantina Indonesia - BKHIT Sulawesi Utara">
+          <img src="/logo.png" alt="Badan Karantina Indonesia" className={styles.orgLogoImg} />
+        </div>
+        {!collapsed && (
           <div className={styles.orgInfo}>
             <span className={styles.orgTitle}>Badan Karantina Indonesia</span>
             <span className={styles.orgSub}>BKHIT Sulawesi Utara</span>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }

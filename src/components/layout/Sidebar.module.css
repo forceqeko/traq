@@ -35,18 +35,24 @@
 }
 
 .brandLogo {
-  width: 34px;
-  height: 34px;
-  background-color: var(--primary);
-  color: #FFFFFF;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 1.1rem;
+  overflow: hidden;
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-color);
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.brandLogoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brandText {
@@ -174,25 +180,36 @@
 }
 
 .sidebarFooter {
-  padding: 1rem 0.75rem;
+  padding: 0.875rem 0.75rem;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  transition: all var(--transition-normal);
+}
+
+.sidebar.collapsed .sidebarFooter {
+  justify-content: center;
+  padding: 0.875rem 0;
 }
 
 .orgLogo {
   width: 32px;
   height: 32px;
-  background-color: var(--surface-2);
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-teal);
-  font-weight: 700;
-  font-size: 0.75rem;
   flex-shrink: 0;
+  overflow: hidden;
+  background-color: transparent;
+}
+
+.orgLogoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .orgInfo {
@@ -212,3 +229,4 @@
   font-size: 0.6875rem;
   color: var(--text-muted);
 }
+

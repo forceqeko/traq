@@ -1,0 +1,46 @@
+.filterContainer {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  gap: 0.35rem;
+  background-color: var(--surface-0);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.2rem 0.4rem;
+  flex-shrink: 0;
+}
+
+.filterLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 0.15rem;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.filterSelect {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.78125rem;
+  padding: 0.28rem 0.5rem;
+  outline: none;
+  cursor: pointer;
+  max-width: 175px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  transition: border-color var(--transition-fast);
+}
+
+.filterSelect:focus {
+  border-color: var(--primary);
+}

@@ -1,0 +1,255 @@
+.pickerWrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Trigger Button */
+.triggerBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.78125rem;
+  padding: 0.28rem 0.5rem;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  user-select: none;
+  white-space: nowrap;
+  max-width: 175px;
+}
+
+.triggerBtn:hover {
+  border-color: var(--primary);
+  background-color: var(--surface-2);
+}
+
+.triggerBtnActive {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary-subtle);
+}
+
+.triggerIcon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.triggerText {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.triggerChevron {
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.triggerChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Popover Modal */
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 320px;
+  background-color: var(--surface-0);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+/* Header */
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.monthNavBtn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.monthNavBtn:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+  background-color: var(--surface-1);
+}
+
+.monthLabel {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Day Names Row */
+.weekDaysRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.weekDayName {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+/* Days Grid */
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dayCell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  position: relative;
+}
+
+.dayCell:hover:not(.dayDisabled) {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.dayOtherMonth {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.dayInRange {
+  background-color: var(--primary-subtle) !important;
+  color: var(--primary) !important;
+  border-radius: 0;
+}
+
+.daySelectedStart {
+  background-color: var(--primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  border-top-left-radius: var(--radius-sm) !important;
+  border-bottom-left-radius: var(--radius-sm) !important;
+}
+
+.daySelectedEnd {
+  background-color: var(--primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  border-top-right-radius: var(--radius-sm) !important;
+  border-bottom-right-radius: var(--radius-sm) !important;
+}
+
+.daySelectedSingle {
+  background-color: var(--primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700;
+  border-radius: var(--radius-sm) !important;
+}
+
+.dayDisabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Footer & Presets */
+.popoverFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.presetsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.presetChip {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.presetChip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: var(--surface-2);
+}
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+}
+
+.statusRangeText {
+  color: var(--text-muted);
+}
+
+.statusDurationBadge {
+  font-weight: 600;
+  color: var(--primary);
+  background-color: var(--primary-subtle);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

@@ -1,0 +1,1049 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
+
+/* ==============================================================================
+   TRAQ (Traffic & Quarantine Analytics) : GLOBAL DESIGN SYSTEM & STYLESHEET
+   Balai Karantina Hewan, Ikan dan Tumbuhan Sulawesi Utara
+   
+   SEMUA PENGATURAN WARNA, TEMA (LIGHT & DARK), TATA LETAK (GRID), KOMPONEN UI,
+   DAN GRAFIK DIKONSOLIDASIKAN DALAM SATU FILE INI SEBAGAI SINGLE SOURCE OF TRUTH.
+   ============================================================================== */
+
+/* ==============================================================================
+   1. COLOR PALETTE & DESIGN TOKENS (LIGHT THEME - DEFAULT)
+   ============================================================================== */
+:root,
+[data-theme="light"] {
+  /* --- Latar Belakang (Backgrounds) --- */
+  --bg-main: #F4F6F9;              /* Latar utama seluruh halaman */
+  --surface-0: #FFFFFF;            /* Latar Header, Sidebar, Dropdown */
+  --surface-1: #FFFFFF;            /* Latar Kartu Dashboard, Modal, Panel */
+  --surface-2: #E9ECEF;            /* Latar hover baris tabel, elemen sekunder */
+  --surface-3: #DEE2E6;            /* Latar tombol aktif / border tebal */
+
+  /* --- Garis Batas & Border --- */
+  --border-color: #DDE2E5;         /* Garis batas kartu, input, tabel */
+  --border-subtle: #EDF2F7;        /* Garis batas halus / pembatas baris */
+  --border-focus: #2563EB;         /* Garis batas saat input fokus / aktif */
+
+  /* --- Tipografi & Warna Teks --- */
+  --text-primary: #1E293B;         /* Teks utama (Slate pekat kontras tinggi) */
+  --text-secondary: #475569;       /* Teks sekunder, label formulir */
+  --text-muted: #64748B;           /* Teks keterangan, watermark, placeholder */
+  --text-inverse: #FFFFFF;         /* Teks kontras pada latar belakang gelap */
+
+  /* --- Brand & Tombol Utama --- */
+  --primary: #2563EB;              /* Warna utama brand (Biru Royal) */
+  --primary-hover: #1D4ED8;        /* Warna utama saat kursor diarahkan */
+  --primary-active: #1E40AF;       /* Warna utama saat ditekan */
+  --primary-subtle: rgba(37, 99, 235, 0.1); /* Highlight seleksi / badge */
+
+  /* --- Aksen Sektor & Arus Karantina --- */
+  --accent-teal: #0D9488;          /* Komoditas Ikan */
+  --accent-amber: #D97706;         /* Komoditas Hewan */
+  --accent-green: #10B981;         /* Komoditas Tumbuhan */
+  --accent-indigo: #6366F1;        /* Domestik Keluar */
+  --accent-cyan: #06B6D4;          /* Domestik Masuk */
+  --accent-purple: #7C3AED;        /* Ekspor */
+  --accent-rose: #E11D48;          /* Impor */
+
+  /* --- Indikator Status --- */
+  --status-success: #16A34A;       /* Status sukses / tren positif */
+  --status-success-bg: rgba(22, 163, 74, 0.12);
+  --status-warning: #D97706;       /* Status peringatan */
+  --status-warning-bg: rgba(217, 119, 6, 0.12);
+  --status-danger: #DC2626;        /* Status bahaya / error */
+  --status-danger-bg: rgba(220, 38, 38, 0.12);
+  --status-info: #2563EB;          /* Status informasi */
+  --status-info-bg: rgba(37, 99, 235, 0.12);
+
+  /* --- Palet Warna Grafik / Charts (Bar, Pie, Donut, Line, Area) --- */
+  --chart-color-1: #3B82F6;        /* Batang 1 / Slice 1 (Biru) */
+  --chart-color-2: #0D9488;        /* Batang 2 / Slice 2 (Teal) */
+  --chart-color-3: #F59E0B;        /* Batang 3 / Slice 3 (Amber) */
+  --chart-color-4: #8B5CF6;        /* Batang 4 / Slice 4 (Ungu Violet) */
+  --chart-color-5: #F43F5E;        /* Batang 5 / Slice 5 (Rose) */
+  --chart-color-6: #10B981;        /* Batang 6 / Slice 6 (Emerald) */
+  --chart-color-7: #EC4899;        /* Batang 7 / Slice 7 (Pink) */
+  --chart-color-8: #6366F1;        /* Batang 8 / Slice 8 (Indigo) */
+  --chart-color-9: #06B6D4;        /* Batang 9 / Slice 9 (Cyan) */
+  --chart-color-10: #F97316;       /* Batang 10 / Slice 10 (Orange) */
+
+  /* --- Ukuran Tata Letak & Radius --- */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 64px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* --- Efek Bayangan (Shadows) --- */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+  /* --- Durasi Transisi --- */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==============================================================================
+   2. COLOR PALETTE & DESIGN TOKENS (DARK THEME)
+   ============================================================================== */
+[data-theme="dark"] {
+  /* --- Latar Belakang (Dark Backgrounds) --- */
+  --bg-main: #0B0E14;              /* Latar utama hitam gelap */
+  --surface-0: #121621;            /* Latar Header, Sidebar, Panel */
+  --surface-1: #1A1F2C;            /* Latar Kartu Dashboard, Modal */
+  --surface-2: #242B3D;            /* Latar hover dan baris aktif */
+  --surface-3: #2E374E;            /* Latar tombol dan aksen */
+
+  /* --- Garis Batas & Border --- */
+  --border-color: #2D3548;
+  --border-subtle: #1F2636;
+  --border-focus: #3B82F6;
+
+  /* --- Tipografi & Warna Teks --- */
+  --text-primary: #F3F4F6;         /* Teks putih terang */
+  --text-secondary: #9CA3AF;       /* Teks abu-abu lembut */
+  --text-muted: #6B7280;           /* Teks abu-abu redup */
+  --text-inverse: #0F172A;
+
+  /* --- Brand & Tombol Utama --- */
+  --primary: #3B82F6;
+  --primary-hover: #2563EB;
+  --primary-active: #1D4ED8;
+  --primary-subtle: rgba(59, 130, 246, 0.15);
+
+  /* --- Aksen Sektor & Arus Karantina --- */
+  --accent-teal: #0D9488;
+  --accent-amber: #F59E0B;
+  --accent-green: #10B981;
+  --accent-indigo: #818CF8;
+  --accent-cyan: #22D3EE;
+  --accent-purple: #A78BFA;
+  --accent-rose: #FB7185;
+
+  /* --- Indikator Status --- */
+  --status-success: #10B981;
+  --status-success-bg: rgba(16, 185, 129, 0.15);
+  --status-warning: #F59E0B;
+  --status-warning-bg: rgba(245, 158, 11, 0.15);
+  --status-danger: #EF4444;
+  --status-danger-bg: rgba(239, 68, 68, 0.15);
+  --status-info: #3B82F6;
+  --status-info-bg: rgba(59, 130, 246, 0.15);
+
+  /* --- Palet Warna Visualisasi / Charts (Dark Mode) --- */
+  --chart-color-1: #3B82F6;
+  --chart-color-2: #0D9488;
+  --chart-color-3: #F59E0B;
+  --chart-color-4: #8B5CF6;
+  --chart-color-5: #F43F5E;
+  --chart-color-6: #10B981;
+  --chart-color-7: #EC4899;
+  --chart-color-8: #6366F1;
+  --chart-color-9: #06B6D4;
+  --chart-color-10: #F97316;
+
+  /* --- Efek Bayangan (Dark Shadows) --- */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+/* ==============================================================================
+   3. RESET & BASE ELEMENTS
+   ============================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Scrollbar Elegan */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-0);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--surface-3);
+}
+
+/* ==============================================================================
+   4. UI COMPONENTS (KARTU, TOMBOL, FORM, BADGE, MODAL)
+   ============================================================================== */
+
+/* Kartu Standar */
+.card {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.card:hover {
+  border-color: var(--surface-3);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Tombol (Buttons) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-primary:active {
+  background-color: var(--primary-active);
+}
+
+.btn-secondary {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--surface-3);
+  border-color: var(--text-muted);
+}
+
+.btn-danger {
+  background-color: var(--accent-rose);
+  color: #FFFFFF;
+}
+
+.btn-danger:hover {
+  background-color: #E11D48;
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.btn-icon:hover {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* Form Input & Select */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.form-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.input {
+  background-color: var(--surface-0);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.875rem;
+  color: var(--text-primary);
+  outline: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--primary-subtle);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.select {
+  background-color: var(--surface-0);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.875rem;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
+.select:focus {
+  border-color: var(--border-focus);
+}
+
+/* Badge Status & Role */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.badge-superadmin {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.badge-admin {
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #C084FC;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.badge-user,
+.badge-petugas {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93C5FD;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-success {
+  background-color: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.badge-warning {
+  background-color: var(--status-warning-bg);
+  color: var(--status-warning);
+}
+
+.badge-danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+/* ==============================================================================
+   5. LAYOUT & NAVIGATION (SIDEBAR, HEADER, MAIN CONTENT)
+   ============================================================================== */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: var(--sidebar-width);
+  transition: margin-left var(--transition-normal);
+}
+
+.main-content.collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+.page-body {
+  padding: 1.5rem 2rem;
+  flex: 1;
+}
+
+/* Header Styles */
+.header {
+  height: var(--header-height);
+  background-color: var(--surface-0);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pageTitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.themeToggleBtn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.themeToggleBtn:hover {
+  background-color: var(--surface-2);
+  border-color: var(--border-color);
+  transform: scale(1.04);
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background-color: var(--surface-0);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  transition: width var(--transition-normal);
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidebarHeader {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.brandLogo {
+  width: 34px;
+  height: 34px;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* ==============================================================================
+   6. GRID TATA LETAK DASHBOARD (60-KOLOM: FULL, 1/2, 1/3, 1/4, 1/5)
+   ============================================================================== */
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(60, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+.itemFull {
+  grid-column: span 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemHalf {
+  grid-column: span 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemThird {
+  grid-column: span 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemQuarter {
+  grid-column: span 15;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemFifth {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .itemQuarter { grid-column: span 30; }
+  .itemFifth { grid-column: span 20; }
+}
+
+@media (max-width: 900px) {
+  .itemThird, .itemQuarter, .itemFifth { grid-column: span 30; }
+}
+
+@media (max-width: 640px) {
+  .itemHalf, .itemThird, .itemQuarter, .itemFifth { grid-column: span 60; }
+}
+
+/* ==============================================================================
+   7. GRAFIK & VISUALISASI (CHARTS, TOOLTIP, KPI CARDS)
+   ============================================================================== */
+.chartCard {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+  height: 100%;
+  min-height: 440px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chartCard:hover {
+  border-color: var(--surface-3);
+}
+
+.chartHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.chartTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chartBody {
+  flex: 1;
+  width: 100%;
+  min-height: 330px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.emptyBox {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background-color: var(--surface-0);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.customTooltip {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.875rem;
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+}
+
+.tooltipTitle {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.25rem;
+}
+
+/* ==============================================================================
+   8. FILTER PERIODE GLOBAL
+   ============================================================================== */
+.filterContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--surface-0);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 0.5rem;
+}
+
+.filterLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.25rem;
+}
+
+.filterSelect {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.625rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.filterSelect:focus {
+  border-color: var(--primary);
+}
+
+/* ==============================================================================
+   9. DATA MANAGEMENT & UPLOAD EXCEL
+   ============================================================================== */
+.dropZone {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 3rem 2rem;
+  text-align: center;
+  background-color: var(--surface-0);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dropZone:hover, .dropZone.active {
+  border-color: var(--primary);
+  background-color: var(--surface-1);
+}
+
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.previewTable th {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.previewTable td {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.previewTable tr:hover td {
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+}
+
+/* ==============================================================================
+   10. ANIMASI & LOADING SHIMMER
+   ============================================================================== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-1) 25%, var(--surface-2) 50%, var(--surface-1) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==============================================================================
+   11. ANIMATED WAVE BARS LOADER & CUSTOM DIALOG BOX (ALERT & CONFIRMATION MODAL)
+   ============================================================================== */
+/* From Uiverse.io by Donewenfu */
+.loader-wrapper {
+  position: relative;
+  width: 72px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.jimu-primary-loading:before,
+.jimu-primary-loading:after {
+  position: absolute;
+  top: 0;
+  content: '';
+}
+
+.jimu-primary-loading:before {
+  left: -19.992px;
+}
+
+.jimu-primary-loading:after {
+  left: 19.992px;
+  -webkit-animation-delay: 0.32s !important;
+  animation-delay: 0.32s !important;
+}
+
+.jimu-primary-loading:before,
+.jimu-primary-loading:after,
+.jimu-primary-loading {
+  background: var(--primary, #076fe5);
+  -webkit-animation: loading-keys-app-loading 0.8s infinite ease-in-out;
+  animation: loading-keys-app-loading 0.8s infinite ease-in-out;
+  width: 13.6px;
+  height: 32px;
+  border-radius: 4px;
+}
+
+.jimu-primary-loading {
+  text-indent: -9999em;
+  margin: auto;
+  position: absolute;
+  right: calc(50% - 6.8px);
+  top: calc(50% - 16px);
+  -webkit-animation-delay: 0.16s !important;
+  animation-delay: 0.16s !important;
+}
+
+@-webkit-keyframes loading-keys-app-loading {
+  0%,
+  80%,
+  100% {
+    opacity: .75;
+    box-shadow: 0 0 var(--primary, #076fe5);
+    height: 32px;
+  }
+
+  40% {
+    opacity: 1;
+    box-shadow: 0 -8px var(--primary, #076fe5);
+    height: 40px;
+  }
+}
+
+@keyframes loading-keys-app-loading {
+  0%,
+  80%,
+  100% {
+    opacity: .75;
+    box-shadow: 0 0 var(--primary, #076fe5);
+    height: 32px;
+  }
+
+  40% {
+    opacity: 1;
+    box-shadow: 0 -8px var(--primary, #076fe5);
+    height: 40px;
+  }
+}
+
+/* --- Dialog Backdrop & Card --- */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 1.25rem;
+  margin: 0;
+  box-sizing: border-box;
+  animation: dialogFadeIn 0.2s ease-out;
+}
+
+@keyframes dialogFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialogPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.dialog-card {
+  width: 100%;
+  max-width: 480px;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 2.25rem 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: dialogPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.dialog-icon-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 1.5rem auto;
+  line-height: 0;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.dialog-icon-circle svg {
+  display: block;
+  margin: auto;
+}
+
+.dialog-icon-circle.success {
+  background-color: rgba(22, 163, 74, 0.15);
+  color: var(--status-success);
+  border: 1.5px solid rgba(22, 163, 74, 0.35);
+}
+
+.dialog-icon-circle.danger {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: var(--status-danger);
+  border: 1.5px solid rgba(220, 38, 38, 0.35);
+}
+
+.dialog-icon-circle.warning {
+  background-color: rgba(217, 119, 6, 0.15);
+  color: var(--status-warning);
+  border: 1.5px solid rgba(217, 119, 6, 0.35);
+}
+
+.dialog-icon-circle.info {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: var(--primary);
+  border: 1.5px solid rgba(59, 130, 246, 0.35);
+}
+
+.dialog-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.625rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.dialog-message {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 0.875rem;
+  width: 100%;
+}
+
+.dialog-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 46px;
+  transition: all var(--transition-fast);
+}
+
+.dialog-btn-cancel {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.dialog-btn-cancel:hover {
+  background-color: var(--surface-0);
+}
+
+.dialog-btn-confirm-success {
+  background-color: var(--status-success);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.dialog-btn-confirm-success:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.dialog-btn-confirm-danger {
+  background-color: var(--status-danger);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.dialog-btn-confirm-danger:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.dialog-btn-confirm-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.dialog-btn-confirm-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+

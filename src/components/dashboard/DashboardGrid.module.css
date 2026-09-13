@@ -1,0 +1,115 @@
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(60, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* Width Column Spanning */
+.itemFull {
+  grid-column: span 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemThreeQuarters {
+  grid-column: span 45;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemTwoThirds {
+  grid-column: span 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemHalf {
+  grid-column: span 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemThird {
+  grid-column: span 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemQuarter {
+  grid-column: span 15;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemFifth {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.itemSixth {
+  grid-column: span 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .itemQuarter {
+    grid-column: span 30;
+  }
+  .itemFifth {
+    grid-column: span 20;
+  }
+  .itemSixth {
+    grid-column: span 20;
+  }
+  .itemThreeQuarters {
+    grid-column: span 60;
+  }
+  .itemTwoThirds {
+    grid-column: span 60;
+  }
+}
+
+@media (max-width: 900px) {
+  .itemThreeQuarters,
+  .itemTwoThirds,
+  .itemHalf,
+  .itemThird,
+  .itemQuarter,
+  .itemFifth,
+  .itemSixth {
+    grid-column: span 60;
+  }
+}
+
+@media (max-width: 640px) {
+  .itemFull,
+  .itemThreeQuarters,
+  .itemTwoThirds,
+  .itemHalf,
+  .itemThird,
+  .itemQuarter,
+  .itemFifth,
+  .itemSixth {
+    grid-column: span 60;
+  }
+}

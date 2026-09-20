@@ -160,7 +160,7 @@ export default function PieChartComponent({
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={0}>
       <PieChart margin={{ top: 10, right: 25, bottom: 10, left: 25 }}>
         <Pie
           data={chartData}

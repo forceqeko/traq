@@ -146,7 +146,7 @@
 }
 
 .dropdownItem.danger:hover {
-  background-color: rgba(239, 68, 68, 0.15);
+  background-color: var(--status-danger-bg);
 }
 
 .divider {

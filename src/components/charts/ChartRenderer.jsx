@@ -11,7 +11,7 @@ import MapChartComponent from './MapChartComponent';
 import KpiGroupContainer from './KpiGroupContainer';
 import styles from './charts.module.css';
 
-export default function ChartRenderer({ chartConfig = {}, rawData = [], height }) {
+export default function ChartRenderer({ chartConfig = {}, rawData = [], height, hideCard = false }) {
   const {
     title = 'Visualisasi Data',
     chart_type = 'bar',
@@ -233,6 +233,14 @@ export default function ChartRenderer({ chartConfig = {}, rawData = [], height }
 
   if (chart_type === 'kpi_card' || chart_type === 'kpi_group') {
     return renderChartBody();
+  }
+
+  if (hideCard) {
+    return (
+      <div style={{ width: '100%', height: '100%', minHeight: 0, position: 'relative' }}>
+        {renderChartBody()}
+      </div>
+    );
   }
 
   const cardStyle = height

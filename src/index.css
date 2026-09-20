@@ -1047,3 +1047,983 @@ button {
   transform: translateY(-1px);
 }
 
+/* ==============================================================================
+   12. STUDIO TATA LETAK EKSPOR (CANVAS EXPORT STUDIO)
+   ============================================================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.export-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: fadeIn var(--transition-fast);
+}
+
+.export-modal-container {
+  width: 98vw;
+  max-width: 1560px;
+  height: 96vh;
+  background-color: var(--surface-0);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: popIn var(--transition-normal);
+}
+
+/* Header Bar */
+.export-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-1);
+  flex-shrink: 0;
+}
+
+.export-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.export-modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.export-modal-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.export-header-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.export-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.45rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.export-icon-btn:hover {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.export-icon-btn.active {
+  background-color: var(--primary-subtle);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Split Body */
+.export-modal-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 0;
+  background-color: var(--bg-main);
+}
+
+/* Sidebar */
+.export-sidebar {
+  background-color: var(--surface-0);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.export-sidebar-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-1);
+  flex-shrink: 0;
+}
+
+.export-sidebar-tab-btn {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+}
+
+.export-sidebar-tab-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-2);
+}
+
+.export-sidebar-tab-btn.activeTab {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background-color: var(--primary-subtle);
+}
+
+.export-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.export-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-visuals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.export-visual-card {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.export-visual-card:hover {
+  border-color: var(--primary);
+  background-color: var(--surface-2);
+}
+
+.export-visual-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow: hidden;
+}
+
+.export-visual-card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.export-visual-card-type {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.export-add-visual-btn {
+  background-color: var(--surface-2);
+  color: var(--primary);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.export-add-visual-btn:hover {
+  background-color: var(--primary);
+  color: var(--text-inverse);
+  border-color: var(--primary);
+}
+
+.export-elements-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.export-element-btn {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 0.6rem;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.export-element-btn:hover {
+  background-color: var(--surface-2);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.export-element-btn svg {
+  color: var(--primary);
+}
+
+.export-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.export-control-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.export-segmented-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background-color: var(--surface-2);
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  gap: 0.25rem;
+}
+
+.export-segment-btn {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+}
+
+.export-segment-btn:hover {
+  color: var(--text-primary);
+}
+
+.export-segment-btn.activeSegment {
+  background-color: var(--surface-0);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.export-checkbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.export-checkbox-row input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Workspace */
+.export-canvas-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--bg-main);
+  position: relative;
+}
+
+.export-workspace-topbar {
+  background-color: var(--surface-0);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.export-page-tabs-list {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow-x: auto;
+  max-width: 60%;
+}
+
+.export-page-tab {
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.export-page-tab:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.export-page-tab.activePageTab {
+  background-color: var(--primary-subtle);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.export-add-page-btn {
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all var(--transition-fast);
+}
+
+.export-add-page-btn:hover {
+  background-color: var(--surface-2);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.export-canvas-view-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-tool-badge {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.2rem 0.5rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.export-canvas-scroll-area {
+  flex: 1;
+  overflow: auto;
+  padding: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  position: relative;
+  background-color: var(--bg-main);
+}
+
+.export-zoom-wrapper {
+  transition: transform 0.15s ease-out;
+  transform-origin: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A4 Sheet */
+.export-canvas-sheet {
+  background-color: var(--surface-0);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.export-canvas-landscape {
+  width: 1000px;
+  height: 707px;
+}
+
+.export-canvas-portrait {
+  width: 707px;
+  height: 1000px;
+}
+
+.export-grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 20px 20px;
+  background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px);
+  opacity: 0.18;
+  z-index: 0;
+}
+
+.export-guideline-x {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--primary);
+  box-shadow: 0 0 4px var(--primary);
+  pointer-events: none;
+  z-index: 999;
+}
+
+.export-guideline-y {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--primary);
+  box-shadow: 0 0 4px var(--primary);
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* Canvas Item & Transform System */
+.export-canvas-item {
+  position: absolute;
+  touch-action: none;
+  cursor: move;
+  box-sizing: border-box;
+  transition: border-color 0.1s ease;
+}
+
+.export-canvas-item:hover:not(.export-item-selected) {
+  outline: 1px dashed var(--primary);
+  outline-offset: -1px;
+}
+
+.export-item-selected {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: -1px;
+  z-index: 50 !important;
+}
+
+.export-resize-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background-color: var(--surface-0);
+  border: 1.5px solid var(--primary);
+  border-radius: 1px;
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  touch-action: none;
+}
+
+.export-handle-nw { top: -5px; left: -5px; cursor: nwse-resize; }
+.export-handle-n  { top: -5px; left: calc(50% - 4.5px); cursor: ns-resize; }
+.export-handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.export-handle-e  { top: calc(50% - 4.5px); right: -5px; cursor: ew-resize; }
+.export-handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+.export-handle-s  { bottom: -5px; left: calc(50% - 4.5px); cursor: ns-resize; }
+.export-handle-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.export-handle-w  { top: calc(50% - 4.5px); left: -5px; cursor: ew-resize; }
+
+.export-floating-toolbar {
+  position: absolute;
+  top: -42px;
+  left: 0;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: var(--shadow-md);
+  z-index: 150;
+  white-space: nowrap;
+}
+
+.export-floating-tool-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.3rem 0.45rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+}
+
+.export-floating-tool-btn:hover {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.export-floating-tool-btn.dangerBtn:hover {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger);
+}
+
+.export-tool-divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--border-color);
+  margin: 0 0.1rem;
+}
+
+/* Inner Component Blocks */
+.export-header-block {
+  width: 100%;
+  height: 100%;
+  background-color: var(--surface-1);
+  border-bottom: 2px solid var(--primary);
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+}
+
+.export-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.export-header-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.export-header-org-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.05em;
+}
+
+.export-header-org-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.export-header-meta-block {
+  text-align: right;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.export-header-meta-block strong {
+  color: var(--text-primary);
+}
+
+.export-chart-card {
+  width: 100%;
+  height: 100%;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.export-chart-card-header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--surface-1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.export-chart-card-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0.5rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.export-kpi-card {
+  width: 100%;
+  height: 100%;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.export-kpi-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.export-kpi-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+.export-kpi-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.export-text-block {
+  width: 100%;
+  height: 100%;
+  padding: 0.4rem 0.5rem;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  outline: none;
+  word-break: break-word;
+}
+
+.export-text-input-inline {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: inherit;
+  outline: none;
+  font-family: inherit;
+  padding: 0.2rem;
+  resize: none;
+}
+
+.export-box-shape {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Footer Bar */
+.export-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem;
+  background-color: var(--surface-1);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.export-footer-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.export-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.export-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.export-cancel-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.export-cancel-btn:hover {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.export-submit-btn {
+  background: var(--primary);
+  color: var(--text-inverse);
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.export-submit-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.export-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Multi-Selection Tag & Group Bounding Box */
+.export-group-bounding-box {
+  position: absolute;
+  border: 1.5px dashed var(--primary);
+  pointer-events: none;
+  z-index: 80;
+  box-sizing: border-box;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.export-group-bounding-box .export-resize-handle {
+  pointer-events: auto;
+  width: 10px;
+  height: 10px;
+  background-color: var(--surface-0);
+  border: 2px solid var(--primary);
+  border-radius: 2px;
+}
+
+.export-group-tag-pill {
+  position: absolute;
+  top: -26px;
+  left: 0;
+  background-color: var(--primary);
+  color: var(--text-inverse);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+
+.export-tag-item-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--primary);
+  color: var(--text-inverse);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  z-index: 120;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.export-group-toolbar {
+  position: absolute;
+  top: -46px;
+  left: 0;
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: var(--shadow-md);
+  z-index: 160;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.export-group-title-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 0 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.export-tag-indicator-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all var(--transition-fast);
+}
+
+.export-tag-indicator-btn:hover {
+  background-color: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.export-tag-indicator-btn.tagged {
+  background-color: var(--primary-subtle);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Standalone KPI Group & KPI Card Containers for Export Canvas */
+.export-kpi-group-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.export-kpi-card-standalone {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+
+

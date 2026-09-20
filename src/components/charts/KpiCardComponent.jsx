@@ -133,17 +133,17 @@ export default function KpiCardComponent({
 
     const tLower = (title + ' ' + yAxis).toLowerCase();
 
-    if (tLower.includes('ikan')) return { chosenIcon: Fish, chosenColor: 'var(--accent-teal, #0d9488)' };
-    if (tLower.includes('hewan')) return { chosenIcon: Dog, chosenColor: 'var(--accent-amber, #f59e0b)' };
-    if (tLower.includes('tumbuhan')) return { chosenIcon: Sprout, chosenColor: 'var(--status-success, #10b981)' };
-    if (tLower.includes('masuk') || tLower.includes('domestik masuk')) return { chosenIcon: Inbox, chosenColor: '#06b6d4' };
-    if (tLower.includes('keluar') || tLower.includes('domestik keluar')) return { chosenIcon: Send, chosenColor: '#6366f1' };
-    if (tLower.includes('ekspor')) return { chosenIcon: Globe, chosenColor: '#8b5cf6' };
-    if (tLower.includes('impor')) return { chosenIcon: PackageCheck, chosenColor: '#f43f5e' };
-    if (tLower.includes('nilai') || tLower.includes('rupiah') || tLower.includes('harga')) return { chosenIcon: Banknote, chosenColor: '#10b981' };
-    if (tLower.includes('berat') || tLower.includes('vol') || tLower.includes('netto')) return { chosenIcon: Scale, chosenColor: '#3b82f6' };
+    if (tLower.includes('ikan')) return { chosenIcon: Fish, chosenColor: 'var(--accent-teal)' };
+    if (tLower.includes('hewan')) return { chosenIcon: Dog, chosenColor: 'var(--accent-amber)' };
+    if (tLower.includes('tumbuhan')) return { chosenIcon: Sprout, chosenColor: 'var(--accent-green)' };
+    if (tLower.includes('masuk') || tLower.includes('domestik masuk')) return { chosenIcon: Inbox, chosenColor: 'var(--accent-cyan)' };
+    if (tLower.includes('keluar') || tLower.includes('domestik keluar')) return { chosenIcon: Send, chosenColor: 'var(--accent-indigo)' };
+    if (tLower.includes('ekspor')) return { chosenIcon: Globe, chosenColor: 'var(--accent-purple)' };
+    if (tLower.includes('impor')) return { chosenIcon: PackageCheck, chosenColor: 'var(--accent-rose)' };
+    if (tLower.includes('nilai') || tLower.includes('rupiah') || tLower.includes('harga')) return { chosenIcon: Banknote, chosenColor: 'var(--accent-green)' };
+    if (tLower.includes('berat') || tLower.includes('vol') || tLower.includes('netto')) return { chosenIcon: Scale, chosenColor: 'var(--primary)' };
 
-    return { chosenIcon: FileText, chosenColor: 'var(--primary, #3b82f6)' };
+    return { chosenIcon: FileText, chosenColor: 'var(--primary)' };
   }, [customIcon, customColor, title, yAxis]);
 
   return (
@@ -165,7 +165,8 @@ export default function KpiCardComponent({
             width: 32,
             height: 32,
             borderRadius: 'var(--radius-sm)',
-            backgroundColor: `${chosenColor}20`,
+            backgroundColor: 'var(--surface-2)',
+            border: '1px solid var(--border-subtle)',
             color: chosenColor,
             display: 'flex',
             alignItems: 'center',

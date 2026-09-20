@@ -130,7 +130,7 @@ export default function AreaChartComponent({
   const activeSeries = seriesKeys.length > 0 ? seriesKeys : [yAxisKey];
 
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={0}>
       <AreaChart
         data={data}
         margin={{

@@ -10,8 +10,13 @@ export async function exportCustomCanvas(targetElement, options = {}) {
     filename = 'TRAQ_Laporan.pdf',
     format = 'pdf', // 'pdf' | 'png'
     orientation = 'landscape', // 'landscape' | 'portrait'
-    backgroundColor = '#0B0E14',
+    backgroundColor,
   } = options;
+
+  const defaultBg = typeof window !== 'undefined'
+    ? (getComputedStyle(document.documentElement).getPropertyValue('--surface-0').trim() || '#FFFFFF')
+    : '#FFFFFF';
+  const effectiveBg = backgroundColor || defaultBg;
 
   const element = typeof targetElement === 'string' ? document.getElementById(targetElement) : targetElement;
   if (!element) {
@@ -23,7 +28,7 @@ export async function exportCustomCanvas(targetElement, options = {}) {
     scale: 2.5,
     useCORS: true,
     allowTaint: true,
-    backgroundColor: backgroundColor,
+    backgroundColor: effectiveBg,
     logging: false,
     windowWidth: element.scrollWidth || 1200,
   });
@@ -67,6 +72,90 @@ export async function exportCustomCanvas(targetElement, options = {}) {
   }
 
   pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+}
+
+/**
+ * Multi-Page High-Resolution Canvas Exporter for TRAQ
+ * Renders multiple A4 canvas pages sequentially into a single PDF or multiple PNGs.
+ */
+export async function exportMultiPageCanvas(pageElements, options = {}) {
+  const {
+    filename = 'TRAQ_Laporan',
+    format = 'pdf', // 'pdf' | 'png'
+    orientation = 'landscape', // 'landscape' | 'portrait'
+    backgroundColor,
+    onProgress = () => {},
+  } = options;
+
+  const defaultBg = typeof window !== 'undefined'
+    ? (getComputedStyle(document.documentElement).getPropertyValue('--surface-0').trim() || '#FFFFFF')
+    : '#FFFFFF';
+  const effectiveBg = backgroundColor || defaultBg;
+
+  if (!pageElements || pageElements.length === 0) {
+    throw new Error('Tidak ada halaman untuk diekspor.');
+  }
+
+  // Handle PNG: download each page as high-res image
+  if (format === 'png') {
+    for (let i = 0; i < pageElements.length; i++) {
+      if (onProgress) onProgress(i + 1, pageElements.length, `Merender Halaman ${i + 1}...`);
+      const el = pageElements[i];
+      const canvas = await html2canvas(el, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: effectiveBg,
+        logging: false,
+        windowWidth: el.scrollWidth || 1200,
+      });
+
+      const image = canvas.toDataURL('image/png', 1.0);
+      const link = document.createElement('a');
+      link.href = image;
+      const cleanName = filename.replace(/\.(png|pdf)$/i, '');
+      const pageSuffix = pageElements.length > 1 ? `_Halaman_${i + 1}` : '';
+      link.download = `${cleanName}${pageSuffix}.png`;
+      link.click();
+
+      if (pageElements.length > 1) {
+        await new Promise((r) => setTimeout(r, 350));
+      }
+    }
+    return;
+  }
+
+  // Handle PDF: multi-page document matching exact A4 dimensions
+  const pdf = new jsPDF({
+    orientation: orientation === 'portrait' ? 'portrait' : 'landscape',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = pdf.internal.pageSize.getHeight();
+
+  for (let i = 0; i < pageElements.length; i++) {
+    if (onProgress) onProgress(i + 1, pageElements.length, `Menyusun Halaman ${i + 1} dari ${pageElements.length}...`);
+    const el = pageElements[i];
+    const canvas = await html2canvas(el, {
+      scale: 2.5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: effectiveBg,
+      logging: false,
+      windowWidth: el.scrollWidth || 1200,
+    });
+
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    if (i > 0) {
+      pdf.addPage();
+    }
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight, '', 'FAST');
+  }
+
+  const finalFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+  pdf.save(finalFilename);
 }
 
 /**

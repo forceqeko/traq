@@ -218,7 +218,7 @@ export default function HorizontalBarChartComponent({
   const isMultiSeries = activeSeries.length > 1;
 
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={0}>
       <BarChart
         layout="vertical"
         data={data}

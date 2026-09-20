@@ -213,7 +213,7 @@ export default function BarChartComponent({
   const isMultiSeries = activeSeries.length > 1;
 
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={0}>
       <BarChart
         data={data}
         margin={{

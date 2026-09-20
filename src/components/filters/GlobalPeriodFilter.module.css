@@ -57,7 +57,7 @@
   padding: 0.3125rem 0.5rem;
   outline: none;
   cursor: pointer;
-  color-scheme: dark;
+  color-scheme: light dark;
   font-family: inherit;
   transition: border-color var(--transition-fast);
 }

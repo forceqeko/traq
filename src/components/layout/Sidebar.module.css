@@ -42,7 +42,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background-color: #FFFFFF;
+  background-color: var(--surface-0);
   border: 1px solid var(--border-color);
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -128,7 +128,7 @@
 }
 
 .navItem:hover {
-  background-color: var(--surface-1);
+  background-color: var(--surface-2);
   color: var(--text-primary);
 }
 
@@ -170,13 +170,13 @@
 
 .subItem:hover {
   color: var(--text-primary);
-  background-color: var(--surface-1);
+  background-color: var(--surface-2);
 }
 
 .subItem.active {
   color: var(--primary);
   font-weight: 600;
-  background-color: rgba(59, 130, 246, 0.08);
+  background-color: var(--primary-subtle);
 }
 
 .sidebarFooter {

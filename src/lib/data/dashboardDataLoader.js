@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getDashboardConfigs } from '@/lib/services/dashboardService';
 import { getCachedRecords, setCachedRecords, clearCachedRecords } from '@/lib/cache/indexedDbCache';
 import { getCertificateId } from './aggregation';
+import { getMonthName } from './monthUtils';
 
 // In-Memory cache layer
 const dataCache = new Map();
@@ -634,12 +635,4 @@ function formatTrafficName(type) {
     default:
       return type ? capitalize(type) : '';
   }
-}
-
-function getMonthName(monthNum) {
-  const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-  return months[monthNum - 1] || `Bulan ${monthNum}`;
 }

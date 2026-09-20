@@ -3,6 +3,7 @@ import styles from './charts.module.css';
 import { Search, ChevronLeft, ChevronRight, BarChart3, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { getColumnMappingMap } from '@/lib/services/columnService';
 import { getCertificateId } from '@/lib/data/aggregation';
+import { formatMonthToShort, isMonthName, getMonthSortOrder } from '@/lib/data/monthUtils';
 
 export default function DataTableComponent({
   data = [],
@@ -104,10 +105,15 @@ export default function DataTableComponent({
     let grandVol = 0;
     let grandVal = 0;
 
+    const isMonthGroup = String(groupBy || '').toLowerCase().includes('bulan') || String(groupBy || '').toLowerCase().includes('month');
+
     data.forEach((r, idx) => {
       const row = r.row_data || r || {};
       const rawGroup = row[groupBy] || row.Satpel || row.Komoditas || row.Bulan || 'Lainnya';
-      const groupKey = String(rawGroup).trim() || 'Lainnya';
+      let groupKey = String(rawGroup).trim() || 'Lainnya';
+      if (isMonthGroup || isMonthName(groupKey)) {
+        groupKey = formatMonthToShort(groupKey, isMonthGroup);
+      }
 
       const certId = getCertificateId(row, idx);
 
@@ -152,6 +158,11 @@ export default function DataTableComponent({
     // Dynamic Multi-field Sorting
     list.sort((a, b) => {
       if (activeSort.key === 'groupName') {
+        if (isMonthGroup) {
+          const mOrderA = getMonthSortOrder(a.groupName);
+          const mOrderB = getMonthSortOrder(b.groupName);
+          return activeSort.dir === 'asc' ? mOrderA - mOrderB : mOrderB - mOrderA;
+        }
         const cmp = a.groupName.localeCompare(b.groupName);
         return activeSort.dir === 'asc' ? cmp : -cmp;
       }

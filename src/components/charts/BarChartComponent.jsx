@@ -10,6 +10,7 @@ import {
   Cell,
   LabelList,
 } from 'recharts';
+import { formatMonthToShort } from '@/lib/data/monthUtils';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -29,7 +30,7 @@ const CustomTooltip = ({ active, payload, label, valueUnit = 'auto', yAxisKey = 
   if (active && payload && payload.length) {
     return (
       <div className={styles.customTooltip}>
-        <div className={styles.tooltipTitle}>{label}</div>
+        <div className={styles.tooltipTitle}>{formatMonthToShort(label)}</div>
         {payload.map((entry, index) => {
           const itemColor = entry.color || entry.fill || entry.payload?.fill || 'var(--primary)';
           const formattedVal = formatFullNumberWithUnit(entry.value, valueUnit, yAxisKey || entry.name);
@@ -48,8 +49,9 @@ const CustomTooltip = ({ active, payload, label, valueUnit = 'auto', yAxisKey = 
 
 // Horizontal Multi-Line Tick Renderer (Up to 3 lines, 100% horizontal, precisely centered under each bar)
 const renderHorizontal3LineTick = ({ x, y, payload }) => {
-  const text = String(payload?.value || '').trim();
-  if (!text) return null;
+  const rawText = String(payload?.value || '').trim();
+  if (!rawText) return null;
+  const text = formatMonthToShort(rawText);
 
   const words = text.split(/\s+/);
   const lines = [];

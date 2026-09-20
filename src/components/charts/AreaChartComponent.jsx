@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { formatMonthToShort } from '@/lib/data/monthUtils';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -27,7 +28,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className={styles.customTooltip}>
-        <div className={styles.tooltipTitle}>{label}</div>
+        <div className={styles.tooltipTitle}>{formatMonthToShort(label)}</div>
         {payload.map((entry, index) => {
           const itemColor = entry.stroke || entry.color || entry.payload?.fill || 'var(--primary)';
           return (
@@ -45,8 +46,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // Horizontal Multi-Line Tick Renderer (Up to 3 lines, 100% horizontal, centered under each point)
 const renderHorizontal3LineTick = ({ x, y, payload }) => {
-  const text = String(payload?.value || '').trim();
-  if (!text) return null;
+  const rawText = String(payload?.value || '').trim();
+  if (!rawText) return null;
+  const text = formatMonthToShort(rawText);
 
   const words = text.split(/\s+/);
   const lines = [];

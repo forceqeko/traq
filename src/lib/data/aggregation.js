@@ -1,3 +1,7 @@
+import { formatMonthToShort, getMonthSortOrder, isMonthName, getMonthName } from './monthUtils';
+
+export { formatMonthToShort, getMonthSortOrder, getMonthName };
+
 /**
  * Aggregates raw row objects based on X-axis, Y-axis, aggregation type, Top-N limit, and group_by multi-series.
  * Accurately supports unique certificate deduplication (No. K.1.1) for frequency metrics per category and per series.
@@ -23,6 +27,13 @@ export function aggregateData(rows = [], {
   if (!rows || rows.length === 0) return [];
 
   const groupMap = new Map();
+  const xLower = String(xAxis || '').toLowerCase();
+  const isMonthAxis =
+    xLower.includes('bulan') ||
+    xLower.includes('month') ||
+    xLower.includes('periode') ||
+    xLower === 'bln';
+
   const yLower = String(yAxis || '').toLowerCase();
   const isCertificateMetric =
     yLower.includes('frekuensi') ||
@@ -46,7 +57,10 @@ export function aggregateData(rows = [], {
 
   rows.forEach((row, idx) => {
     const rawX = getValueByFlexibleKey(row, xAxis);
-    const xVal = String(rawX ?? 'Lainnya').trim() || 'Lainnya';
+    let xVal = String(rawX ?? 'Lainnya').trim() || 'Lainnya';
+    if (isMonthAxis || isMonthName(xVal)) {
+      xVal = formatMonthToShort(xVal, isMonthAxis);
+    }
     
     let numVal = 1;
     if (isCertificateMetric) {
@@ -189,33 +203,11 @@ export function aggregateData(rows = [], {
   });
 
   // Chronological sorting for Month / Time axes vs Value sorting
-  const isMonthAxis =
-    xAxis.toLowerCase().includes('bulan') ||
-    xAxis.toLowerCase().includes('month') ||
-    xAxis.toLowerCase().includes('periode');
-
   if (isMonthAxis) {
-    const MONTH_ORDER = {
-      'jan': 1, 'januari': 1, 'january': 1, '01': 1, '1': 1,
-      'feb': 2, 'februari': 2, 'february': 2, '02': 2, '2': 2,
-      'mar': 3, 'maret': 3, 'march': 3, '03': 3, '3': 3,
-      'apr': 4, 'april': 4, '04': 4, '4': 4,
-      'mei': 5, 'may': 5, '05': 5, '5': 5,
-      'jun': 6, 'juni': 6, 'june': 6, '06': 6, '6': 6,
-      'jul': 7, 'juli': 7, 'july': 7, '07': 7, '7': 7,
-      'agu': 8, 'agust': 8, 'agustus': 8, 'ags': 8, 'aug': 8, 'august': 8, '08': 8, '8': 8,
-      'sep': 9, 'september': 9, '09': 9, '9': 9,
-      'okt': 10, 'oktober': 10, 'oct': 10, 'october': 10, '10': 10,
-      'nov': 11, 'november': 11, '11': 11,
-      'des': 12, 'desember': 12, 'dec': 12, 'december': 12, '12': 12,
-    };
-
     result.sort((a, b) => {
-      const aVal = String(a.name || '').toLowerCase().trim();
-      const bVal = String(b.name || '').toLowerCase().trim();
-      const aNum = MONTH_ORDER[aVal] || 99;
-      const bNum = MONTH_ORDER[bVal] || 99;
-      return aNum - bNum;
+      const aVal = String(a.name || '').trim();
+      const bVal = String(b.name || '').trim();
+      return getMonthSortOrder(aVal) - getMonthSortOrder(bVal);
     });
   } else {
     // Sort by value descending

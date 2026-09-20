@@ -6,6 +6,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { formatMonthToShort } from '@/lib/data/monthUtils';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -37,7 +38,7 @@ export default function PieChartComponent({
 
   const chartData = data
     .map((item) => ({
-      name: String(item[nameKey] || item.name || 'Lainnya').trim(),
+      name: formatMonthToShort(String(item[nameKey] || item.name || 'Lainnya').trim()),
       value: Number(item[dataKey] || item.value || 0),
     }))
     .filter((item) => item.value > 0);

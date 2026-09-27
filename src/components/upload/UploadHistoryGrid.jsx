@@ -681,18 +681,39 @@ export default function UploadHistoryGrid({
                                       <span><strong>{record.row_count?.toLocaleString('id-ID')}</strong> baris data</span>
                                     </div>
 
-                                    {/* Uploader Tracking */}
+                                    {/* Uploader / Updater Tracking */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                                       <User size={12} style={{ flexShrink: 0 }} />
-                                      <span title={`Diupload oleh: ${record.uploader_name}`}>
-                                        Input: <strong>{record.uploader_name}</strong>
+                                      <span
+                                        title={
+                                          record.is_updated
+                                            ? `Terakhir diperbarui oleh: ${record.updater_name || record.uploader_name} (Diinput awal oleh: ${record.uploader_name})`
+                                            : `Diupload oleh: ${record.uploader_name}`
+                                        }
+                                      >
+                                        {record.is_updated ? (
+                                          <>
+                                            Update: <strong>{record.updater_name || record.uploader_name}</strong>
+                                          </>
+                                        ) : (
+                                          <>
+                                            Input: <strong>{record.uploader_name}</strong>
+                                          </>
+                                        )}
                                       </span>
                                     </div>
 
+                                    {/* Tanggal & Waktu Terkini */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)' }}>
                                       <Clock size={12} style={{ flexShrink: 0 }} />
-                                      <span>
-                                        {new Date(record.uploaded_at).toLocaleString('id-ID', {
+                                      <span
+                                        title={
+                                          record.is_updated
+                                            ? `Waktu data terbaru / terakhir update (${new Date(record.latest_date || record.updated_at).toLocaleString('id-ID')}). Waktu input awal: ${new Date(record.uploaded_at).toLocaleString('id-ID')}`
+                                            : `Waktu input file: ${new Date(record.uploaded_at).toLocaleString('id-ID')}`
+                                        }
+                                      >
+                                        {new Date(record.latest_date || record.updated_at || record.uploaded_at).toLocaleString('id-ID', {
                                           day: '2-digit',
                                           month: 'short',
                                           year: 'numeric',
@@ -700,20 +721,44 @@ export default function UploadHistoryGrid({
                                           minute: '2-digit',
                                         })}
                                       </span>
+                                      {record.is_updated && (
+                                        <span
+                                          style={{
+                                            fontSize: '0.65rem',
+                                            padding: '1px 5px',
+                                            borderRadius: '4px',
+                                            backgroundColor: 'rgba(13, 148, 136, 0.12)',
+                                            color: '#0d9488',
+                                            fontWeight: 600,
+                                            marginLeft: '2px',
+                                          }}
+                                          title="Data telah diperbarui dari file awal"
+                                        >
+                                          Update
+                                        </span>
+                                      )}
                                     </div>
 
-                                    {/* Updater Tracking (If updated) */}
-                                    {record.updater_name && (
+                                    {/* Detail Input Awal jika sudah pernah diupdate */}
+                                    {record.is_updated && (
                                       <div
                                         style={{
-                                          marginTop: '0.25rem',
+                                          marginTop: '0.2rem',
                                           paddingTop: '0.25rem',
                                           borderTop: '1px dashed var(--border-subtle)',
-                                          fontSize: '0.7rem',
-                                          color: 'var(--accent-teal, #0d9488)',
+                                          fontSize: '0.68rem',
+                                          color: 'var(--text-muted)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.25rem',
                                         }}
+                                        title={`Waktu upload file pertama: ${record.uploaded_at ? new Date(record.uploaded_at).toLocaleString('id-ID') : '-'}`}
                                       >
-                                        Update: <strong>{record.updater_name}</strong> ({new Date(record.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })})
+                                        <span>Input awal:</span>
+                                        <strong>{record.uploader_name}</strong>
+                                        <span>
+                                          ({new Date(record.uploaded_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })})
+                                        </span>
                                       </div>
                                     )}
                                   </div>

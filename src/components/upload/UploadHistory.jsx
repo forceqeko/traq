@@ -88,13 +88,32 @@ export default function UploadHistory({ historyList = [], onDeleteBatch, isLoadi
                 </div>
               </td>
               <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                {new Date(item.uploaded_at).toLocaleString('id-ID', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>
+                    {new Date(item.latest_date || item.updated_at || item.uploaded_at).toLocaleString('id-ID', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  {item.is_updated && (
+                    <span
+                      style={{
+                        fontSize: '0.625rem',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(13, 148, 136, 0.12)',
+                        color: '#0d9488',
+                        fontWeight: 600,
+                      }}
+                      title={`Terakhir diupdate: ${new Date(item.latest_date || item.updated_at).toLocaleString('id-ID')}`}
+                    >
+                      Update
+                    </span>
+                  )}
+                </div>
               </td>
               <td style={{ textAlign: 'right' }}>
                 <button

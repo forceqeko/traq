@@ -175,60 +175,55 @@ export async function updateDataBatch({
     console.warn('Hapus data_records lama gagal, mencoba fallback:', delRecordsErr.message);
   }
 
-  // 2. Perbarui record di upload_history
+  // 2. Perbarui record di upload_history (gunakan API endpoint dengan service role untuk memastikan berhasil)
   const nowIso = new Date().toISOString();
-  let updatePayload = {
-    dataset_id: datasetId,
-    period_month: periodMonth,
-    period_year: periodYear,
-    original_filename: filename,
-    row_count: rows.length,
-    column_count: headers.length,
-    columns_detected: headers,
-    updated_by: userId,
-    updated_at: nowIso,
-  };
+  let uploadRecord = null;
 
-  let { data: uploadRecord, error: updateErr } = await supabase
-    .from('upload_history')
-    .update(updatePayload)
-    .eq('id', uploadId)
-    .select()
-    .single();
+  try {
+    const apiRes = await fetch('/api/admin/update-batch-history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uploadId,
+        filename,
+        rowCount: rows.length,
+        columnCount: headers.length,
+        columnsDetected: headers,
+        uploadedAt: nowIso,
+        userId,
+      }),
+    });
+    if (apiRes.ok) {
+      const json = await apiRes.json();
+      if (json.data) uploadRecord = json.data;
+    }
+  } catch (apiErr) {
+    console.warn('API update-batch-history notice:', apiErr.message);
+  }
 
-  // Fallback jika kolom updated_by / updated_at belum ada di schema DB
-  if (updateErr && (updateErr.message?.includes('updated_by') || updateErr.message?.includes('updated_at'))) {
-    delete updatePayload.updated_by;
-    delete updatePayload.updated_at;
-    const fallbackRes = await supabase
+  // Fallback update langsung jika API tidak tersedia
+  if (!uploadRecord) {
+    let updatePayload = {
+      dataset_id: datasetId,
+      period_month: periodMonth,
+      period_year: periodYear,
+      original_filename: filename,
+      row_count: rows.length,
+      column_count: headers.length,
+      columns_detected: headers,
+      uploaded_at: nowIso,
+    };
+
+    const clientRes = await supabase
       .from('upload_history')
       .update(updatePayload)
       .eq('id', uploadId)
       .select()
-      .single();
-    uploadRecord = fallbackRes.data;
-    updateErr = fallbackRes.error;
-  }
+      .maybeSingle();
 
-  if (updateErr) {
-    // Jika update gagal total karena ID terhapus, insert ulang
-    const insertFallback = await supabase
-      .from('upload_history')
-      .insert({
-        id: uploadId,
-        dataset_id: datasetId,
-        period_month: periodMonth,
-        period_year: periodYear,
-        original_filename: filename,
-        row_count: rows.length,
-        column_count: headers.length,
-        columns_detected: headers,
-        uploaded_by: originalUploadedBy || userId,
-        uploaded_at: originalUploadedAt || nowIso,
-      })
-      .select()
-      .single();
-    uploadRecord = insertFallback.data;
+    if (clientRes.data) {
+      uploadRecord = clientRes.data;
+    }
   }
 
   // 3. Sinkronkan kolom baru
@@ -276,8 +271,8 @@ export async function getUploadHistory() {
   try {
     const supabase = createClient();
     
-    // Ambil data upload_history dan data profil user secara paralel
-    const [historyRes, profilesRes] = await Promise.all([
+    // Ambil data upload_history, data profil user, dan riwayat audit log secara paralel
+    const [historyRes, profilesRes, auditLogsRes] = await Promise.all([
       supabase
         .from('upload_history')
         .select(`
@@ -294,11 +289,16 @@ export async function getUploadHistory() {
         .order('period_month', { ascending: false })
         .order('uploaded_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email, role'),
+      supabase
+        .from('upload_audit_log')
+        .select('*')
+        .order('performed_at', { ascending: false }),
     ]);
 
     if (historyRes.error) throw historyRes.error;
     const historyData = historyRes.data || [];
     const profiles = profilesRes.data || [];
+    const auditLogs = auditLogsRes.data || [];
 
     // Map profiles untuk enrichment
     const profileMap = new Map();
@@ -308,16 +308,54 @@ export async function getUploadHistory() {
       }
     });
 
-    // Tempelkan data nama petugas pengunggah & pengubah
+    // Petakan audit log bertipe 'update' yang paling mutakhir per upload_id dan dataset_periode
+    const latestUpdateByUploadId = new Map();
+    const latestUpdateByDatasetPeriod = new Map();
+
+    auditLogs.forEach((log) => {
+      if (log.action === 'update') {
+        if (log.upload_id && !latestUpdateByUploadId.has(log.upload_id)) {
+          latestUpdateByUploadId.set(log.upload_id, log);
+        }
+        const periodKey = `${log.dataset_id}_${log.period_year}_${log.period_month}`;
+        if (!latestUpdateByDatasetPeriod.has(periodKey)) {
+          latestUpdateByDatasetPeriod.set(periodKey, log);
+        }
+      }
+    });
+
+    // Tempelkan data nama petugas pengunggah & data pembaruan terkini
     return historyData.map((item) => {
+      const periodKey = `${item.dataset_id}_${item.period_year}_${item.period_month}`;
+      const latestUpdate = latestUpdateByUploadId.get(item.id) || latestUpdateByDatasetPeriod.get(periodKey);
+
       const uploader = item.uploaded_by ? profileMap.get(item.uploaded_by) : null;
-      const updater = item.updated_by ? profileMap.get(item.updated_by) : null;
+
+      const effectiveUpdatedBy = latestUpdate?.performed_by || item.updated_by;
+      const updater = effectiveUpdatedBy ? profileMap.get(effectiveUpdatedBy) : null;
+
+      const effectiveUpdatedAt = latestUpdate?.performed_at || item.updated_at || null;
+      const effectiveFilename = latestUpdate?.filename || item.original_filename;
+      const effectiveRowCount = (latestUpdate?.row_count !== undefined && latestUpdate?.row_count !== null)
+        ? latestUpdate.row_count
+        : item.row_count;
+
+      const isUpdated = Boolean(effectiveUpdatedAt && effectiveUpdatedAt !== item.uploaded_at);
+      const latestDate = effectiveUpdatedAt || item.uploaded_at;
+
       return {
         ...item,
+        original_filename: effectiveFilename,
+        row_count: effectiveRowCount,
+        uploaded_at: item.uploaded_at,
+        updated_at: effectiveUpdatedAt,
+        updated_by: effectiveUpdatedBy,
         uploader_name: uploader?.full_name || uploader?.email || (item.uploaded_by ? 'Petugas' : 'Admin Utama'),
         uploader_role: uploader?.role || 'admin',
-        updater_name: updater?.full_name || updater?.email || null,
+        updater_name: updater?.full_name || updater?.email || (effectiveUpdatedBy ? 'Petugas' : null),
         updater_role: updater?.role || null,
+        latest_date: latestDate,
+        is_updated: isUpdated,
       };
     });
   } catch (err) {

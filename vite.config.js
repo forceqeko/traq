@@ -175,6 +175,56 @@ function adminApiPlugin(env) {
           return;
         }
 
+        // 4. Handler Pembaruan Riwayat Upload Batch
+        if (req.url === '/api/admin/update-batch-history' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk;
+          });
+          req.on('end', async () => {
+            try {
+              const { uploadId, filename, rowCount, columnCount, columnsDetected, uploadedAt } = JSON.parse(body || '{}');
+              const supabaseUrl = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+              const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+              if (!uploadId) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: 'Upload ID wajib disertakan.' }));
+              }
+
+              const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+                auth: { autoRefreshToken: false, persistSession: false },
+              });
+
+              const nowIso = uploadedAt || new Date().toISOString();
+              const { data, error } = await adminClient
+                .from('upload_history')
+                .update({
+                  original_filename: filename,
+                  row_count: rowCount,
+                  column_count: columnCount,
+                  columns_detected: columnsDetected,
+                  uploaded_at: nowIso,
+                })
+                .eq('id', uploadId)
+                .select()
+                .single();
+
+              if (error) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: error.message }));
+              }
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, data }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+          return;
+        }
+
         next();
       });
     },

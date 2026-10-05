@@ -10,7 +10,7 @@ import { getCertificateId } from '@/lib/data/aggregation';
 /**
  * Auto-resizes Leaflet map when rendered inside tabs, modals, or animated containers.
  */
-function MapResizeHandler({ center, zoom, maxBounds }) {
+function MapResizeHandler({ center, zoom, maxBounds, dataVersionKey }) {
   const map = useMap();
   useEffect(() => {
     if (map) {
@@ -22,9 +22,9 @@ function MapResizeHandler({ center, zoom, maxBounds }) {
         if (center) {
           map.setView(center, zoom, { animate: false });
         }
-      }, 200);
+      }, 150);
     }
-  }, [map, center, zoom, maxBounds]);
+  }, [map, center, zoom, maxBounds, dataVersionKey]);
   return null;
 }
 
@@ -280,6 +280,21 @@ export default function MapChartComponent({ data = [], config = {}, height = 450
     };
   }, [data, targetColumn, activeMode, activeMetricType, aggregation]);
 
+  // Generate a reactive version key based on the aggregated data content.
+  // This is vital for react-leaflet: <GeoJSON> and <CircleMarker> in react-leaflet
+  // are non-reactive by default and will not update styles or layers when filters change
+  // (such as Satpel, Commodity, Traffic, or Date Range) unless their key changes.
+  const dataVersionKey = useMemo(() => {
+    if (!aggregatedLocations || aggregatedLocations.length === 0) {
+      return `empty-${data?.length || 0}`;
+    }
+    const sample = aggregatedLocations
+      .slice(0, 10)
+      .map((l) => `${l.name}:${Math.round(l.metricValue)}`)
+      .join('|');
+    return `${activeMode}-${activeMetricType}-${activeMapStyle}-${aggregatedLocations.length}-${minVal}-${maxVal}-${sample}`;
+  }, [activeMode, activeMetricType, activeMapStyle, aggregatedLocations, minVal, maxVal, data]);
+
   // Color generator based on intensity
   const primaryColor = colors[0] || '#3B82F6';
   const getColorByIntensity = (val) => {
@@ -465,7 +480,7 @@ export default function MapChartComponent({ data = [], config = {}, height = 450
           scrollWheelZoom={true}
           style={{ width: '100%', height: '100%' }}
         >
-          <MapResizeHandler center={mapCenter} zoom={mapZoom} maxBounds={maxBounds} />
+          <MapResizeHandler center={mapCenter} zoom={mapZoom} maxBounds={maxBounds} dataVersionKey={dataVersionKey} />
           <TileLayer
             key={`tile-${map_tile || 'light'}-${activeMode}`}
             url={tileConfig.url}
@@ -477,7 +492,7 @@ export default function MapChartComponent({ data = [], config = {}, height = 450
           {/* 1. CHOROPLETH POLYGON LAYER (WARNA ARSIRAN WILAYAH SOLID) */}
           {activeMapStyle === 'choropleth' && currentGeoJsonData && (
             <GeoJSON
-              key={`geojson-${activeMode}-${activeMetricType}`}
+              key={`geojson-${dataVersionKey}`}
               data={currentGeoJsonData}
               style={getFeatureStyle}
               onEachFeature={onEachFeature}
@@ -492,7 +507,7 @@ export default function MapChartComponent({ data = [], config = {}, height = 450
 
               return (
                 <CircleMarker
-                  key={loc.name}
+                  key={`bubble-${loc.name}-${dataVersionKey}`}
                   center={[loc.lat, loc.lng]}
                   radius={radius}
                   pathOptions={{
@@ -575,6 +590,41 @@ export default function MapChartComponent({ data = [], config = {}, height = 450
               );
             })}
         </MapContainer>
+      )}
+
+      {/* Top Floating Badge showing active filtered regions count */}
+      {aggregatedLocations.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            backgroundColor: 'rgba(255, 255, 255, 0.94)',
+            backdropFilter: 'blur(4px)',
+            padding: '0.35rem 0.65rem',
+            borderRadius: 'var(--radius-sm, 6px)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            color: '#1e293b',
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#10B981',
+              display: 'inline-block',
+            }}
+          />
+          <span>{aggregatedLocations.length} {activeMode === 'indonesia' ? 'Provinsi' : 'Negara'} Terhubung</span>
+        </div>
       )}
 
       {/* Floating Map Legend (Bottom Right) */}

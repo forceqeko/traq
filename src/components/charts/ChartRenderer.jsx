@@ -21,6 +21,7 @@ export default function ChartRenderer({ chartConfig = {}, rawData = [], height, 
   const {
     commodity_filter = 'all',
     traffic_filter = 'all',
+    satpel_filter = 'all',
     x_axis = 'Komoditas',
     y_axis = 'Volume',
     aggregation = 'sum',
@@ -77,9 +78,24 @@ export default function ChartRenderer({ chartConfig = {}, rawData = [], height, 
         }
       }
 
+      // 3. Satpel Filter (if configured per-chart)
+      if (satpel_filter && satpel_filter !== 'all') {
+        const satFilter = satpel_filter.toLowerCase().trim();
+        const rowSatpel = String(
+          row.Satpel ||
+          row.satpel ||
+          row['Satuan Pelayanan'] ||
+          row['Wilayah Kerja'] ||
+          row.UPT ||
+          row.Wilker ||
+          ''
+        ).toLowerCase().trim();
+        if (rowSatpel !== satFilter) return false;
+      }
+
       return true;
     });
-  }, [rawData, commodity_filter, traffic_filter]);
+  }, [rawData, commodity_filter, traffic_filter, satpel_filter]);
 
   // Process and aggregate data cleanly according to user's Top-N and grouping settings
   const processedData = useMemo(() => {
@@ -213,6 +229,7 @@ export default function ChartRenderer({ chartConfig = {}, rawData = [], height, 
               commodity_filter,
               traffic_filter,
             }}
+            height={height ? Math.max(350, height - 60) : 450}
           />
         );
 

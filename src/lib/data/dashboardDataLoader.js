@@ -199,8 +199,7 @@ async function getMasterRecords(supabase) {
           row.Bulan = getMonthName(item.period_month);
         }
 
-        const rawSatpel = row.Satpel ?? row.satpel ?? row.UPT ?? row['Wilker'] ?? '';
-        row.Satpel = String(rawSatpel).trim();
+        row.Satpel = resolveSatpelColumn(row);
 
         const extractedVol = parseNumber(
           row['Netto P8'] ??
@@ -245,6 +244,27 @@ async function getMasterRecords(supabase) {
 }
 
 /**
+ * Resolves the Satpel (Satuan Pelayanan / Wilker / UPT) name for a data record across multiple column variations.
+ */
+export function resolveSatpelColumn(row) {
+  if (!row) return '';
+  const data = row.row_data || row;
+  const val =
+    data.Satpel ??
+    data.satpel ??
+    data['Satuan Pelayanan'] ??
+    data['Satuan_Pelayanan'] ??
+    data['Wilayah Kerja'] ??
+    data['Wilayah_Kerja'] ??
+    data.UPT ??
+    data.upt ??
+    data.Wilker ??
+    data.wilker ??
+    '';
+  return String(val).trim();
+}
+
+/**
  * Resolves the Pospel (Pos Pelayanan / Tempat Pelayanan) name for a data record based on its traffic direction.
  */
 export function resolvePospelColumn(row) {
@@ -281,7 +301,7 @@ export async function getDistinctPospels(satpelName) {
     const pospelSet = new Set();
 
     records.forEach((r) => {
-      const rowSatpel = String(r.Satpel || r.row_data?.Satpel || r.UPT || '').trim().toLowerCase();
+      const rowSatpel = resolveSatpelColumn(r).toLowerCase();
       if (rowSatpel === targetSatpel) {
         const pVal = resolvePospelColumn(r);
         if (pVal && pVal !== '-' && pVal.toLowerCase() !== 'null' && pVal.toLowerCase() !== 'undefined') {
@@ -306,7 +326,7 @@ export async function getDistinctSatpels() {
     const { records } = await getMasterRecords(supabase);
     const satpelSet = new Set();
     records.forEach((r) => {
-      const val = String(r.Satpel || r.row_data?.Satpel || r.UPT || '').trim();
+      const val = resolveSatpelColumn(r);
       if (val && val !== '-' && val.toLowerCase() !== 'null' && val.toLowerCase() !== 'undefined') {
         satpelSet.add(val);
       }
@@ -362,7 +382,7 @@ export async function loadPageDashboardData(pageKey = 'home', periodFilter = {})
     if (selectedSatpel && selectedSatpel !== 'all') {
       const targetSatpel = String(selectedSatpel).trim().toLowerCase();
       filtered = filtered.filter((r) => {
-        const satpelVal = String(r.Satpel || r.row_data?.Satpel || r.UPT || '').trim().toLowerCase();
+        const satpelVal = resolveSatpelColumn(r).toLowerCase();
         return satpelVal === targetSatpel;
       });
     }
@@ -429,7 +449,7 @@ export async function loadPageDashboardData(pageKey = 'home', periodFilter = {})
     // Extract distinct Satpel list from master records
     const satpelSet = new Set();
     masterRecords.forEach((r) => {
-      const val = String(r.Satpel || r.row_data?.Satpel || r.UPT || '').trim();
+      const val = resolveSatpelColumn(r);
       if (val && val !== '-' && val.toLowerCase() !== 'null' && val.toLowerCase() !== 'undefined') {
         satpelSet.add(val);
       }
@@ -453,7 +473,7 @@ export async function loadPageDashboardData(pageKey = 'home', periodFilter = {})
         domainRecords = masterRecords.filter((r) => r._traffic_type === pageKey);
       }
       domainRecords.forEach((r) => {
-        const rowSatpel = String(r.Satpel || r.row_data?.Satpel || r.UPT || '').trim().toLowerCase();
+        const rowSatpel = resolveSatpelColumn(r).toLowerCase();
         if (rowSatpel === targetSatpel) {
           const pVal = resolvePospelColumn(r);
           if (pVal && pVal !== '-' && pVal.toLowerCase() !== 'null' && pVal.toLowerCase() !== 'undefined') {

@@ -22,6 +22,10 @@ import ColumnMapping from '@/pages/pengaturan/ColumnMapping';
 import KustomisasiDashboard from '@/pages/pengaturan/KustomisasiDashboard';
 import ManajemenPengguna from '@/pages/pengaturan/ManajemenPengguna';
 import Profil from '@/pages/pengaturan/Profil';
+import InstalasiPage from '@/pages/instalasi/InstalasiPage';
+import InstalasiIki from '@/pages/instalasi/InstalasiIki';
+import ProfilingPenggunaJasa from '@/pages/profiling/ProfilingPenggunaJasa';
+import PengaturanIki from '@/pages/pengaturan/PengaturanIki';
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
@@ -66,9 +70,20 @@ export default function App() {
 
                   <Route path="/karantina/tumbuhan" element={<KarantinaTumbuhan />} />
                   <Route path="/karantina_tumbuhan" element={<KarantinaTumbuhan />} />
+
+                  {/* Instalasi Karantina */}
+                  <Route path="/instalasi/ikh" element={<InstalasiPage jenis="ikh" />} />
+                  <Route path="/instalasi/iki" element={<InstalasiIki />} />
+                  <Route path="/instalasi/ikt" element={<InstalasiPage jenis="ikt" />} />
+
+                  {/* Profiling Pengguna Jasa */}
+                  <Route path="/profiling/hewan" element={<ProfilingPenggunaJasa commodity="hewan" />} />
+                  <Route path="/profiling/ikan" element={<ProfilingPenggunaJasa commodity="ikan" />} />
+                  <Route path="/profiling/tumbuhan" element={<ProfilingPenggunaJasa commodity="tumbuhan" />} />
                   
                   {/* Pengaturan / Manajemen */}
                   <Route path="/pengaturan" element={<AdminGuard><Pengaturan /></AdminGuard>} />
+                  <Route path="/pengaturan/iki" element={<AdminGuard><PengaturanIki /></AdminGuard>} />
                   <Route path="/pengaturan/manajemen-data" element={<AdminGuard><ManajemenData /></AdminGuard>} />
                   <Route path="/pengaturan/column-mapping" element={<AdminGuard><ColumnMapping /></AdminGuard>} />
                   <Route path="/pengaturan/kustomisasi-dashboard" element={<AdminGuard><KustomisasiDashboard /></AdminGuard>} />

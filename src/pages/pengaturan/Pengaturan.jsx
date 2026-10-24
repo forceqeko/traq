@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
-import { UploadCloud, LayoutGrid, Link2, Users, User } from 'lucide-react';
+import { UploadCloud, LayoutGrid, Link2, Users, User, Warehouse } from 'lucide-react';
 
 export default function Pengaturan() {
   const { isSuperAdmin } = useUser();
@@ -11,6 +11,13 @@ export default function Pengaturan() {
       icon: <UploadCloud size={28} style={{ color: 'var(--primary)' }} />,
       title: 'Manajemen Data Excel',
       description: 'Upload file Excel 12 kategori, lihat riwayat batch upload, validasi, dan hapus/replace data periode.',
+      superAdminOnly: false,
+    },
+    {
+      to: '/pengaturan/iki',
+      icon: <Warehouse size={28} style={{ color: 'var(--accent-blue, #0284c7)' }} />,
+      title: 'Instalasi Karantina Ikan (IKI)',
+      description: 'Kelola daftar perusahaan berstatus IKI, kapasitas operasional (Ekor), dan masa berlaku sertifikasi.',
       superAdminOnly: false,
     },
     {

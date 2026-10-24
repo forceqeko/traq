@@ -6,6 +6,8 @@ import {
   Home,
   Truck,
   Leaf,
+  Warehouse,
+  Users,
   Settings,
   ChevronDown,
   ChevronRight,
@@ -19,6 +21,8 @@ export default function Sidebar({ collapsed, onToggle }) {
   const { isAdmin } = useUser();
   const [laluLintasOpen, setLaluLintasOpen] = useState(true);
   const [karantinaOpen, setKarantinaOpen] = useState(true);
+  const [instalasiOpen, setInstalasiOpen] = useState(false);
+  const [profilingOpen, setProfilingOpen] = useState(true);
 
   const isActive = (path) => pathname === path;
   const isParentActive = (prefix) => pathname.startsWith(prefix);
@@ -144,7 +148,88 @@ export default function Sidebar({ collapsed, onToggle }) {
           )}
         </div>
 
-        {/* 4. Pengaturan */}
+        {/* 4. Instalasi Karantina Menu */}
+        <div>
+          <div
+            className={`${styles.navItem} ${isParentActive('/instalasi') ? styles.active : ''}`}
+            onClick={() => !collapsed && setInstalasiOpen(!instalasiOpen)}
+            title="Instalasi Karantina"
+          >
+            <Warehouse className={styles.navIcon} />
+            {!collapsed && (
+              <>
+                <span className={styles.navLabel}>Instalasi Karantina</span>
+                {instalasiOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </>
+            )}
+          </div>
+          {!collapsed && instalasiOpen && (
+            <div className={styles.subList}>
+              <Link
+                to="/instalasi/ikh"
+                className={`${styles.subItem} ${isActive('/instalasi/ikh') ? styles.active : ''}`}
+                title="Instalasi Karantina Hewan (IKH)"
+              >
+                Instalasi Karantina Hewan (IKH)
+              </Link>
+              <Link
+                to="/instalasi/iki"
+                className={`${styles.subItem} ${isActive('/instalasi/iki') ? styles.active : ''}`}
+                title="Instalasi Karantina Ikan (IKI)"
+              >
+                Instalasi Karantina Ikan (IKI)
+              </Link>
+              <Link
+                to="/instalasi/ikt"
+                className={`${styles.subItem} ${isActive('/instalasi/ikt') ? styles.active : ''}`}
+                title="Instalasi Karantina Tumbuhan (IKT)"
+              >
+                Instalasi Karantina Tumbuhan (IKT)
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* 5. Profiling Pengguna Jasa Menu */}
+        <div>
+          <div
+            className={`${styles.navItem} ${isParentActive('/profiling') ? styles.active : ''}`}
+            onClick={() => !collapsed && setProfilingOpen(!profilingOpen)}
+            title="Profiling Pengguna Jasa"
+          >
+            <Users className={styles.navIcon} />
+            {!collapsed && (
+              <>
+                <span className={styles.navLabel}>Profiling Pengguna Jasa</span>
+                {profilingOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </>
+            )}
+          </div>
+          {!collapsed && profilingOpen && (
+            <div className={styles.subList}>
+              <Link
+                to="/profiling/hewan"
+                className={`${styles.subItem} ${isActive('/profiling/hewan') ? styles.active : ''}`}
+              >
+                Hewan
+              </Link>
+              <Link
+                to="/profiling/ikan"
+                className={`${styles.subItem} ${isActive('/profiling/ikan') ? styles.active : ''}`}
+              >
+                Ikan
+              </Link>
+              <Link
+                to="/profiling/tumbuhan"
+                className={`${styles.subItem} ${isActive('/profiling/tumbuhan') ? styles.active : ''}`}
+              >
+                Tumbuhan
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* 6. Pengaturan */}
         {isAdmin && (
           <>
             {!collapsed && <div className={styles.navGroupTitle}>MANAJEMEN</div>}

@@ -165,7 +165,8 @@
   color: var(--text-muted);
   font-size: 0.8125rem;
   transition: all var(--transition-fast);
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .subItem:hover {

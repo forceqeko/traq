@@ -1,16 +1,39 @@
 import { createContext, useContext, useState } from 'react';
 
 /**
+ * Helper to get date range for the current active month
+ */
+export function getCurrentMonthRange() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const monthStr = String(month).padStart(2, '0');
+  const lastDay = new Date(year, month, 0).getDate();
+  const lastDayStr = String(lastDay).padStart(2, '0');
+  return {
+    startDate: `${year}-${monthStr}-01`,
+    endDate: `${year}-${monthStr}-${lastDayStr}`,
+  };
+}
+
+const defaultNow = new Date();
+const defaultCurrentYear = defaultNow.getFullYear();
+const defaultCurrentMonth = defaultNow.getMonth() + 1;
+const defaultCurrentQuarter = Math.ceil(defaultCurrentMonth / 3);
+const defaultCurrentSemester = defaultCurrentMonth <= 6 ? 1 : 2;
+const defaultCustomRange = getCurrentMonthRange();
+
+/**
  * Format human-readable period label from period filter state
  */
 export function formatPeriodLabel(filter = {}) {
   const {
     periodType = 'year',
-    selectedYear = 2026,
-    selectedMonth = 8,
-    selectedQuarter = 3,
-    selectedSemester = 2,
-    customRange = {},
+    selectedYear = defaultCurrentYear,
+    selectedMonth = defaultCurrentMonth,
+    selectedQuarter = defaultCurrentQuarter,
+    selectedSemester = defaultCurrentSemester,
+    customRange = defaultCustomRange,
   } = filter;
 
   if (periodType === 'year') return `Tahunan (${selectedYear})`;
@@ -25,11 +48,11 @@ export function formatPeriodLabel(filter = {}) {
 
 const PeriodFilterContext = createContext({
   periodType: 'year', // 'year' | 'month' | 'quarter' | 'semester' | 'custom'
-  selectedYear: 2026,
-  selectedMonth: 8,
-  selectedQuarter: 3,
-  selectedSemester: 2,
-  customRange: { startDate: '2026-08-01', endDate: '2026-08-31' },
+  selectedYear: defaultCurrentYear,
+  selectedMonth: defaultCurrentMonth,
+  selectedQuarter: defaultCurrentQuarter,
+  selectedSemester: defaultCurrentSemester,
+  customRange: defaultCustomRange,
   selectedSatpel: 'all', // 'all' | specific Satpel name
   satpelOptions: [],
   selectedPospels: 'all', // 'all' | array of strings
@@ -44,21 +67,18 @@ const PeriodFilterContext = createContext({
   setSatpelOptions: () => {},
   setSelectedPospels: () => {},
   setPospelOptions: () => {},
-  formatPeriodLabel: () => 'Tahunan (2026)',
+  formatPeriodLabel: () => `Tahunan (${defaultCurrentYear})`,
   formatSatpelLabel: () => 'Semua Satpel',
   formatPospelLabel: () => 'Semua',
 });
 
 export function PeriodFilterProvider({ children }) {
   const [periodType, setPeriodType] = useState('year');
-  const [selectedYear, setSelectedYear] = useState(2026);
-  const [selectedMonth, setSelectedMonth] = useState(8);
-  const [selectedQuarter, setSelectedQuarter] = useState(3);
-  const [selectedSemester, setSelectedSemester] = useState(2);
-  const [customRange, setCustomRange] = useState({
-    startDate: '2026-08-01',
-    endDate: '2026-08-31',
-  });
+  const [selectedYear, setSelectedYear] = useState(defaultCurrentYear);
+  const [selectedMonth, setSelectedMonth] = useState(defaultCurrentMonth);
+  const [selectedQuarter, setSelectedQuarter] = useState(defaultCurrentQuarter);
+  const [selectedSemester, setSelectedSemester] = useState(defaultCurrentSemester);
+  const [customRange, setCustomRange] = useState(defaultCustomRange);
   const [selectedSatpel, setSelectedSatpelState] = useState('all');
   const [satpelOptions, setSatpelOptions] = useState([]);
   const [selectedPospels, setSelectedPospels] = useState('all');

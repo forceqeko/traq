@@ -3,6 +3,7 @@ import { getDashboardConfigs } from '@/lib/services/dashboardService';
 import { getCachedRecords, setCachedRecords, clearCachedRecords } from '@/lib/cache/indexedDbCache';
 import { getCertificateId } from './aggregation';
 import { getMonthName } from './monthUtils';
+import { getIkiList } from '@/lib/services/ikiService';
 
 // In-Memory cache layer
 const dataCache = new Map();
@@ -20,6 +21,12 @@ export function clearDashboardCache() {
   inMemoryVersionHash = null;
   // Preserving IndexedDB allows getMasterRecords to perform lightning-fast incremental syncs
   // when new batches are added, instead of re-downloading 90k+ rows.
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('traq:iki-changed', () => {
+    dataCache.clear();
+  });
 }
 
 export function forcePurgeDashboardCache() {
@@ -724,3 +731,585 @@ function formatTrafficName(type) {
       return type ? capitalize(type) : '';
   }
 }
+
+/**
+ * Normalizes company name for consistent grouping.
+ */
+function normalizeCompanyName(rawName) {
+  if (!rawName) return '';
+  return String(rawName)
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/^P\.?T\.?\s+/i, 'PT ')
+    .replace(/^C\.?V\.?\s+/i, 'CV ')
+    .replace(/^U\.?D\.?\s+/i, 'UD ')
+    .toUpperCase();
+}
+
+/**
+ * Loads and aggregates Profiling Pengguna Jasa data for Hewan, Ikan, or Tumbuhan.
+ * Strictly filtered to Domestik Keluar and Ekspor only.
+ */
+export async function loadPenggunaJasaProfile(commodity = 'ikan', periodFilter = {}) {
+  const targetCommodity = String(commodity).toLowerCase();
+  const {
+    periodType,
+    selectedYear,
+    selectedMonth,
+    selectedQuarter,
+    selectedSemester,
+    customRange,
+    selectedSatpel,
+    selectedPospels,
+  } = periodFilter;
+
+  const pospelKey = Array.isArray(selectedPospels)
+    ? [...selectedPospels].sort().join('|')
+    : (selectedPospels || 'all');
+
+  const cacheKey = `profiling_${targetCommodity}_${periodType}_${selectedYear}_${selectedMonth || 0}_${selectedQuarter || 0}_${selectedSemester || 0}_${customRange?.startDate || ''}_${customRange?.endDate || ''}_${selectedSatpel || 'all'}_${pospelKey}`;
+
+  if (dataCache.has(cacheKey)) {
+    return dataCache.get(cacheKey);
+  }
+
+  const supabase = createClient();
+
+  try {
+    const { records: masterRecords } = await getMasterRecords(supabase);
+
+    // 1. Filter by commodity
+    let filtered = masterRecords.filter((r) => r._commodity_type === targetCommodity);
+
+    // 2. Strict filter: ONLY Domestik Keluar and Ekspor
+    filtered = filtered.filter(
+      (r) => r._traffic_type === 'domestik_keluar' || r._traffic_type === 'ekspor'
+    );
+
+    // 3. Filter by Satpel (if selected and not 'all')
+    if (selectedSatpel && selectedSatpel !== 'all') {
+      const targetSatpel = String(selectedSatpel).trim().toLowerCase();
+      filtered = filtered.filter((r) => {
+        const satpelVal = resolveSatpelColumn(r).toLowerCase();
+        return satpelVal === targetSatpel;
+      });
+    }
+
+    // 4. Filter by Pospel (if selectedSatpel is active and selectedPospels is specific array)
+    if (
+      selectedSatpel &&
+      selectedSatpel !== 'all' &&
+      Array.isArray(selectedPospels) &&
+      selectedPospels.length > 0
+    ) {
+      const pospelSet = new Set(selectedPospels.map((p) => String(p).trim().toLowerCase()));
+      filtered = filtered.filter((r) => {
+        const pospelVal = resolvePospelColumn(r).toLowerCase();
+        return pospelSet.has(pospelVal);
+      });
+    }
+
+    // 5. Filter by period
+    if (periodType === 'custom' && customRange?.startDate && customRange?.endDate) {
+      const start = String(customRange.startDate).trim().slice(0, 10);
+      const end = String(customRange.endDate).trim().slice(0, 10);
+      filtered = filtered.filter((r) => {
+        const row = r.row_data || r || {};
+        const dateStr =
+          row['Tgl Dokumen'] ||
+          row['Tgl K.1.1'] ||
+          row['Tgl Aju'] ||
+          row['Tgl Periksa'] ||
+          row['Tanggal Dokumen'] ||
+          row['Tanggal'] ||
+          row['Tanggal_Dokumen'] ||
+          row['Tgl_Dokumen'] ||
+          row['Tgl_K11'] ||
+          row['Tgl_Aju'] ||
+          row['Tgl_Periksa'] ||
+          '';
+        const ymd = dateStr ? String(dateStr).trim().slice(0, 10) : '';
+        if (ymd && ymd.length === 10) {
+          return ymd >= start && ymd <= end;
+        }
+        return false;
+      });
+    } else {
+      if (selectedYear) {
+        filtered = filtered.filter((r) => r.period_year === Number(selectedYear));
+      }
+      if (periodType === 'month' && selectedMonth) {
+        filtered = filtered.filter((r) => r.period_month === Number(selectedMonth));
+      } else if (periodType === 'quarter' && selectedQuarter) {
+        const startMonth = (Number(selectedQuarter) - 1) * 3 + 1;
+        const endMonth = startMonth + 2;
+        filtered = filtered.filter((r) => r.period_month >= startMonth && r.period_month <= endMonth);
+      } else if (periodType === 'semester' && selectedSemester) {
+        const startMonth = Number(selectedSemester) === 2 ? 7 : 1;
+        const endMonth = Number(selectedSemester) === 2 ? 12 : 6;
+        filtered = filtered.filter((r) => r.period_month >= startMonth && r.period_month <= endMonth);
+      }
+    }
+
+    // 6. Aggregate by Sender / Company
+    const companyMap = new Map();
+    const allDokelCerts = new Set();
+    const allEksporCerts = new Set();
+
+    filtered.forEach((r, idx) => {
+      const row = r.row_data || r || {};
+      const rawSender = String(row['Pengirim'] || row['Nama Pengirim'] || row['Pemohon'] || '').trim();
+      if (!rawSender) return;
+
+      const normKey = normalizeCompanyName(rawSender);
+      if (!normKey) return;
+
+      if (!companyMap.has(normKey)) {
+        companyMap.set(normKey, {
+          id: normKey,
+          namaPerusahaan: rawSender,
+          nameCounts: { [rawSender]: 1 },
+          dokelCerts: new Set(),
+          eksporCerts: new Set(),
+          komoditasSet: new Set(),
+          hasHaccp: false,
+        });
+      }
+
+      const item = companyMap.get(normKey);
+      item.nameCounts[rawSender] = (item.nameCounts[rawSender] || 0) + 1;
+
+      const certId = getCertificateId(r, idx);
+
+      if (r._traffic_type === 'domestik_keluar') {
+        item.dokelCerts.add(certId);
+        allDokelCerts.add(certId);
+      } else if (r._traffic_type === 'ekspor') {
+        item.eksporCerts.add(certId);
+        allEksporCerts.add(certId);
+      }
+
+      const kom = String(r.Komoditas || row['Komoditas'] || row['Nama Tercetak'] || '').trim();
+      if (kom) {
+        item.komoditasSet.add(kom);
+      }
+
+      const dokPendukung = String(row['Dokumen Pendukung'] || row['Dokumen_Pendukung'] || '').toUpperCase();
+      if (dokPendukung.includes('HACCP')) {
+        item.hasHaccp = true;
+      }
+    });
+
+    const records = Array.from(companyMap.values())
+      .map((c) => {
+        let bestName = c.namaPerusahaan;
+        let maxCount = 0;
+        for (const [name, count] of Object.entries(c.nameCounts)) {
+          if (count > maxCount) {
+            maxCount = count;
+            bestName = name;
+          }
+        }
+
+        const frekuensiDokel = c.dokelCerts.size;
+        const frekuensiEkspor = c.eksporCerts.size;
+        const totalFrekuensi = frekuensiDokel + frekuensiEkspor;
+
+        return {
+          id: c.id,
+          namaPerusahaan: bestName,
+          komoditasList: Array.from(c.komoditasSet).sort((a, b) => a.localeCompare('id-ID')),
+          frekuensiDokel,
+          frekuensiEkspor,
+          totalFrekuensi,
+          hasHaccp: c.hasHaccp,
+        };
+      })
+      .sort((a, b) => b.totalFrekuensi - a.totalFrekuensi);
+
+    const summary = {
+      totalPenggunaJasa: records.length,
+      totalDokel: allDokelCerts.size,
+      totalEkspor: allEksporCerts.size,
+      totalSertifikat: allDokelCerts.size + allEksporCerts.size,
+      totalHaccp: records.filter((r) => r.hasHaccp).length,
+    };
+
+    const result = { records, summary };
+    dataCache.set(cacheKey, result);
+    return result;
+  } catch (err) {
+    console.error('Failed to load pengguna jasa profile:', err);
+    return {
+      records: [],
+      summary: {
+        totalPenggunaJasa: 0,
+        totalDokel: 0,
+        totalEkspor: 0,
+        totalSertifikat: 0,
+        totalHaccp: 0,
+      },
+    };
+  }
+}
+
+/**
+ * Loads registered IKI list and aggregates live traffic data (DK & Ekspor)
+ * for the selected period filter.
+ */
+export async function loadIkiTrafficData(periodFilter = {}) {
+  const {
+    periodType = 'year',
+    selectedYear = new Date().getFullYear(),
+    selectedMonth,
+    selectedQuarter,
+    selectedSemester,
+    customRange,
+    selectedSatpel,
+    selectedPospels,
+  } = periodFilter;
+
+  const pospelKey = Array.isArray(selectedPospels) ? selectedPospels.join('-') : selectedPospels || 'all';
+  const cacheKey = `iki_traffic_${periodType}_${selectedYear}_${selectedMonth || 0}_${selectedQuarter || 0}_${selectedSemester || 0}_${customRange?.startDate || ''}_${customRange?.endDate || ''}_${selectedSatpel || 'all'}_${pospelKey}`;
+
+  if (dataCache.has(cacheKey)) {
+    return dataCache.get(cacheKey);
+  }
+
+  try {
+    const supabase = createClient();
+    const [{ records: masterRecords }, ikiList] = await Promise.all([
+      getMasterRecords(supabase),
+      getIkiList(),
+    ]);
+
+    if (!ikiList || ikiList.length === 0) {
+      const emptyResult = {
+        records: [],
+        summary: {
+          totalIki: 0,
+          totalVolumeEkspor: 0,
+          totalVolumeDokel: 0,
+          totalFrekuensiEkspor: 0,
+          totalFrekuensiDokel: 0,
+          totalFrekuensi: 0,
+          totalKapasitas: 0,
+        },
+      };
+      return emptyResult;
+    }
+
+    // 1. Filter Ikan with traffic type: domestik_keluar and ekspor only
+    let filtered = (masterRecords || []).filter(
+      (r) =>
+        r._commodity_type === 'ikan' &&
+        (r._traffic_type === 'domestik_keluar' || r._traffic_type === 'ekspor')
+    );
+
+    // 2. Filter by Satpel
+    if (selectedSatpel && selectedSatpel !== 'all') {
+      const targetSatpel = String(selectedSatpel).trim().toLowerCase();
+      filtered = filtered.filter((r) => {
+        const rowSatpel = resolveSatpelColumn(r).toLowerCase();
+        return rowSatpel === targetSatpel;
+      });
+    }
+
+    // 3. Filter by Pospel
+    if (
+      selectedSatpel &&
+      selectedSatpel !== 'all' &&
+      Array.isArray(selectedPospels) &&
+      selectedPospels.length > 0
+    ) {
+      const pospelSet = new Set(selectedPospels.map((p) => String(p).trim().toLowerCase()));
+      filtered = filtered.filter((r) => {
+        const pospelVal = resolvePospelColumn(r).toLowerCase();
+        return pospelSet.has(pospelVal);
+      });
+    }
+
+    // 4. Filter by Period
+    if (periodType === 'custom' && customRange?.startDate && customRange?.endDate) {
+      const start = String(customRange.startDate).trim().slice(0, 10);
+      const end = String(customRange.endDate).trim().slice(0, 10);
+      filtered = filtered.filter((r) => {
+        const row = r.row_data || r || {};
+        const dateStr =
+          row['Tgl Dokumen'] ||
+          row['Tgl K.1.1'] ||
+          row['Tgl Aju'] ||
+          row['Tgl Periksa'] ||
+          row['Tanggal Dokumen'] ||
+          row['Tanggal'] ||
+          '';
+        const ymd = dateStr ? String(dateStr).trim().slice(0, 10) : '';
+        if (ymd && ymd.length === 10) {
+          return ymd >= start && ymd <= end;
+        }
+        return false;
+      });
+    } else {
+      if (selectedYear) {
+        filtered = filtered.filter((r) => r.period_year === Number(selectedYear));
+      }
+      if (periodType === 'month' && selectedMonth) {
+        filtered = filtered.filter((r) => r.period_month === Number(selectedMonth));
+      } else if (periodType === 'quarter' && selectedQuarter) {
+        const startMonth = (Number(selectedQuarter) - 1) * 3 + 1;
+        const endMonth = startMonth + 2;
+        filtered = filtered.filter((r) => r.period_month >= startMonth && r.period_month <= endMonth);
+      } else if (periodType === 'semester' && selectedSemester) {
+        const startMonth = Number(selectedSemester) === 2 ? 7 : 1;
+        const endMonth = Number(selectedSemester) === 2 ? 12 : 6;
+        filtered = filtered.filter((r) => r.period_month >= startMonth && r.period_month <= endMonth);
+      }
+    }
+
+    // 5. Build lookup map for registered IKI companies
+    const ikiMap = new Map();
+    ikiList.forEach((iki) => {
+      ikiMap.set(normalizeCompanyName(iki.nama_perusahaan), iki);
+    });
+
+    const certMap = new Map();
+    const companiesWithTraffic = new Set();
+
+    // 6. Process each filtered traffic record
+    filtered.forEach((r, idx) => {
+      const row = r.row_data || r || {};
+      const rawSender = String(row['Pengirim'] || row['Nama Pengirim'] || row['Pemohon'] || '').trim();
+      if (!rawSender) return;
+
+      const normKey = normalizeCompanyName(rawSender);
+      let matchedIki = ikiMap.get(normKey);
+      if (!matchedIki) {
+        for (const [k, val] of ikiMap.entries()) {
+          if (normKey.includes(k) || k.includes(normKey)) {
+            matchedIki = val;
+            break;
+          }
+        }
+      }
+      if (!matchedIki) return;
+
+      companiesWithTraffic.add(matchedIki.id);
+
+      const certId = getCertificateId(r, idx);
+      const trafficType = r._traffic_type === 'ekspor' ? 'ekspor' : 'domestik_keluar';
+      const key = `${trafficType}_${certId}_${matchedIki.id}`;
+
+      // Extract document date
+      const rawDocDate = String(
+        row['Tgl Dokumen'] ||
+        row['Tanggal Dokumen'] ||
+        row['Tgl_Dokumen'] ||
+        row['Tgl K.1.1'] ||
+        row['Tgl Aju'] ||
+        ''
+      ).trim();
+      const datePart = rawDocDate ? rawDocDate.slice(0, 10) : '-';
+
+      // Extract commodity
+      const rawKomoditas = String(
+        row['Komoditas'] ||
+        row['Nama Komoditas'] ||
+        row['Komoditi'] ||
+        row['Nama Tercetak'] ||
+        ''
+      ).trim();
+
+      if (trafficType === 'ekspor') {
+        // Volume Ekspor: Kg from Netto P8, Ekor from Vol Lain where Satuan Lain is ekor
+        const nettoKg = parseNumber(row['Netto P8'] || row['Netto_P8'] || row['Netto P1'] || row['Netto'] || 0);
+        const satuanLain = String(row['Satuan Lain'] || row['Satuan_Lain'] || '').trim().toLowerCase();
+        const isEkor = satuanLain === 'ekor' || satuanLain.includes('ekor');
+        const volEkor = isEkor ? parseNumber(row['Vol Lain'] || row['Vol_Lain'] || 0) : 0;
+
+        if (!certMap.has(key)) {
+          const komoditasSet = rawKomoditas ? new Set([rawKomoditas]) : new Set();
+          certMap.set(key, {
+            id: key,
+            certId,
+            tanggal: datePart,
+            namaIki: matchedIki.nama_perusahaan,
+            alamatIki: matchedIki.alamat_perusahaan || '-',
+            komoditas: rawKomoditas || '-',
+            _komoditasSet: komoditasSet,
+            frekuensiEkspor: 1,
+            volumeEksporKg: nettoKg,
+            volumeEksporEkor: volEkor,
+            volumeEkspor: nettoKg,
+            frekuensiDokel: 0,
+            volumeDokelKg: 0,
+            volumeDokelEkor: 0,
+            volumeDokel: 0,
+            kapasitasIki: Number(matchedIki.kapasitas_iki) || 0,
+            companyId: matchedIki.id,
+          });
+        } else {
+          // If certificate has multiple commodity line items, sum the volumes
+          const item = certMap.get(key);
+          item.volumeEksporKg += nettoKg;
+          item.volumeEksporEkor += volEkor;
+          item.volumeEkspor += nettoKg;
+          if (item.tanggal === '-' && datePart !== '-') {
+            item.tanggal = datePart;
+          }
+          if (rawKomoditas && item._komoditasSet) {
+            item._komoditasSet.add(rawKomoditas);
+            item.komoditas = Array.from(item._komoditasSet).join(', ');
+          }
+        }
+      } else {
+        // Volume Dokel: Kg from Netto P8, Ekor from Vol Lain where Satuan Lain is ekor
+        const nettoKg = parseNumber(row['Netto P8'] || row['Netto_P8'] || row['Netto P1'] || row['Netto'] || 0);
+        const satuanLain = String(row['Satuan Lain'] || row['Satuan_Lain'] || '').trim().toLowerCase();
+        const isEkor = satuanLain === 'ekor' || satuanLain.includes('ekor');
+        const volEkor = isEkor ? parseNumber(row['Vol Lain'] || row['Vol_Lain'] || 0) : 0;
+
+        if (!certMap.has(key)) {
+          const komoditasSet = rawKomoditas ? new Set([rawKomoditas]) : new Set();
+          certMap.set(key, {
+            id: key,
+            certId,
+            tanggal: datePart,
+            namaIki: matchedIki.nama_perusahaan,
+            alamatIki: matchedIki.alamat_perusahaan || '-',
+            komoditas: rawKomoditas || '-',
+            _komoditasSet: komoditasSet,
+            frekuensiEkspor: 0,
+            volumeEksporKg: 0,
+            volumeEksporEkor: 0,
+            volumeEkspor: 0,
+            frekuensiDokel: 1,
+            volumeDokelKg: nettoKg,
+            volumeDokelEkor: volEkor,
+            volumeDokel: volEkor,
+            kapasitasIki: Number(matchedIki.kapasitas_iki) || 0,
+            companyId: matchedIki.id,
+          });
+        } else {
+          // If certificate has multiple commodity line items, sum the volumes
+          const item = certMap.get(key);
+          item.volumeDokelKg += nettoKg;
+          item.volumeDokelEkor += volEkor;
+          item.volumeDokel += volEkor;
+          if (item.tanggal === '-' && datePart !== '-') {
+            item.tanggal = datePart;
+          }
+          if (rawKomoditas && item._komoditasSet) {
+            item._komoditasSet.add(rawKomoditas);
+            item.komoditas = Array.from(item._komoditasSet).join(', ');
+          }
+        }
+      }
+    });
+
+    const transactionRows = Array.from(certMap.values());
+
+    // 7. For registered IKI companies that had NO traffic in this period, add 1 placeholder row
+    ikiList.forEach((iki) => {
+      if (!companiesWithTraffic.has(iki.id)) {
+        transactionRows.push({
+          id: `no_traffic_${iki.id}`,
+          certId: '-',
+          tanggal: '-',
+          namaIki: iki.nama_perusahaan,
+          alamatIki: iki.alamat_perusahaan || '-',
+          komoditas: '-',
+          frekuensiEkspor: 0,
+          volumeEksporKg: 0,
+          volumeEksporEkor: 0,
+          volumeEkspor: 0,
+          frekuensiDokel: 0,
+          volumeDokelKg: 0,
+          volumeDokelEkor: 0,
+          volumeDokel: 0,
+          kapasitasIki: Number(iki.kapasitas_iki) || 0,
+          companyId: iki.id,
+        });
+      }
+    });
+
+    // 8. Sort: newest date first, entries with '-' at the end
+    transactionRows.sort((a, b) => {
+      if (a.tanggal === '-' && b.tanggal === '-') return 0;
+      if (a.tanggal === '-') return 1;
+      if (b.tanggal === '-') return -1;
+      return b.tanggal.localeCompare(a.tanggal);
+    });
+
+    // 9. Assign 1-based sequential numbers
+    transactionRows.forEach((r, idx) => {
+      r.no = idx + 1;
+      delete r._komoditasSet;
+      r.volumeEksporKg = Math.round((r.volumeEksporKg || 0) * 100) / 100;
+      r.volumeEksporEkor = Math.round(r.volumeEksporEkor || 0);
+      r.volumeEkspor = r.volumeEksporKg;
+      r.volumeDokelKg = Math.round((r.volumeDokelKg || 0) * 100) / 100;
+      r.volumeDokelEkor = Math.round(r.volumeDokelEkor || 0);
+      r.volumeDokel = r.volumeDokelEkor;
+    });
+
+    // 10. Summary totals for KPI cards
+    let totalVolumeEksporKg = 0;
+    let totalVolumeEksporEkor = 0;
+    let totalVolumeDokelKg = 0;
+    let totalVolumeDokelEkor = 0;
+    let totalFrekuensiEkspor = 0;
+    let totalFrekuensiDokel = 0;
+    let totalKapasitas = 0;
+
+    ikiList.forEach((iki) => {
+      totalKapasitas += Number(iki.kapasitas_iki) || 0;
+    });
+
+    transactionRows.forEach((r) => {
+      totalVolumeEksporKg += r.volumeEksporKg || 0;
+      totalVolumeEksporEkor += r.volumeEksporEkor || 0;
+      totalVolumeDokelKg += r.volumeDokelKg || 0;
+      totalVolumeDokelEkor += r.volumeDokelEkor || 0;
+      totalFrekuensiEkspor += r.frekuensiEkspor || 0;
+      totalFrekuensiDokel += r.frekuensiDokel || 0;
+    });
+
+    const summary = {
+      totalIki: ikiList.length,
+      totalVolumeEksporKg: Math.round(totalVolumeEksporKg * 100) / 100,
+      totalVolumeEksporEkor: Math.round(totalVolumeEksporEkor),
+      totalVolumeEkspor: Math.round(totalVolumeEksporKg * 100) / 100,
+      totalVolumeDokelKg: Math.round(totalVolumeDokelKg * 100) / 100,
+      totalVolumeDokelEkor: Math.round(totalVolumeDokelEkor),
+      totalVolumeDokel: Math.round(totalVolumeDokelEkor),
+      totalFrekuensiEkspor,
+      totalFrekuensiDokel,
+      totalFrekuensi: totalFrekuensiEkspor + totalFrekuensiDokel,
+      totalKapasitas,
+    };
+
+    const result = { records: transactionRows, summary };
+    dataCache.set(cacheKey, result);
+    return result;
+  } catch (err) {
+    console.error('Failed to load IKI traffic data:', err);
+    return {
+      records: [],
+      summary: {
+        totalIki: 0,
+        totalVolumeEksporKg: 0,
+        totalVolumeEksporEkor: 0,
+        totalVolumeEkspor: 0,
+        totalVolumeDokelKg: 0,
+        totalVolumeDokelEkor: 0,
+        totalVolumeDokel: 0,
+        totalFrekuensiEkspor: 0,
+        totalFrekuensiDokel: 0,
+        totalFrekuensi: 0,
+        totalKapasitas: 0,
+      },
+    };
+  }
+}
+
+

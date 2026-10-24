@@ -33,29 +33,51 @@ function formatDisplayDate(str) {
   return `${d} ${monthShort} ${y}`;
 }
 
+function getDefaultMonthRange() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = pad2(now.getMonth() + 1);
+  const lastD = pad2(new Date(y, now.getMonth() + 1, 0).getDate());
+  return {
+    startDate: `${y}-${m}-01`,
+    endDate: `${y}-${m}-${lastD}`,
+  };
+}
+
 export default function CustomDateRangePicker({
-  startDate = '2026-08-01',
-  endDate = '2026-08-31',
+  startDate,
+  endDate,
   onChange,
   maxDays = 31,
 }) {
+  const defaultRange = getDefaultMonthRange();
+  const effectiveStart = startDate || defaultRange.startDate;
+  const effectiveEnd = endDate || defaultRange.endDate;
+
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
 
-  // Initial view is based on startDate or endDate
-  const initialDate = parseDateString(endDate || startDate);
+  // Initial view is based on effectiveEnd or effectiveStart
+  const initialDate = parseDateString(effectiveEnd || effectiveStart);
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
 
   // Range selection step
   const [isSelectingEnd, setIsSelectingEnd] = useState(false);
-  const [tempStart, setTempStart] = useState(startDate);
-  const [tempEnd, setTempEnd] = useState(endDate);
+  const [tempStart, setTempStart] = useState(effectiveStart);
+  const [tempEnd, setTempEnd] = useState(effectiveEnd);
 
   // Sync with prop updates
   useEffect(() => {
-    setTempStart(startDate);
-    setTempEnd(endDate);
+    const s = startDate || defaultRange.startDate;
+    const e = endDate || defaultRange.endDate;
+    setTempStart(s);
+    setTempEnd(e);
+    if (e || s) {
+      const parsed = parseDateString(e || s);
+      setViewYear(parsed.getFullYear());
+      setViewMonth(parsed.getMonth());
+    }
   }, [startDate, endDate]);
 
   // Close on outside click and commit if in middle of selection
@@ -142,7 +164,7 @@ export default function CustomDateRangePicker({
 
   // Quick preset ranges
   const applyPreset = (days) => {
-    const referenceDate = parseDateString(endDate || '2026-08-31');
+    const referenceDate = parseDateString(endDate || effectiveEnd);
     const end = new Date(referenceDate);
     const start = new Date(referenceDate);
     start.setDate(start.getDate() - (days - 1));

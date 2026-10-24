@@ -98,8 +98,8 @@ export default function GlobalPeriodFilter() {
       {/* Custom Tanggal Interaktif (Kalender Popover, Maks. 31 Hari) */}
       {periodType === 'custom' && (
         <CustomDateRangePicker
-          startDate={customRange?.startDate || '2026-08-01'}
-          endDate={customRange?.endDate || '2026-08-31'}
+          startDate={customRange?.startDate}
+          endDate={customRange?.endDate}
           onChange={(range) => setCustomRange(range)}
           maxDays={31}
         />

@@ -60,7 +60,7 @@ export async function getCachedRecords() {
   }
 }
 
-export async function setCachedRecords(records = [], versionHash = '') {
+export async function setCachedRecords(records = [], versionHash = '', uploadMeta = {}) {
   try {
     const db = await openDB();
     if (!db) return false;
@@ -72,6 +72,7 @@ export async function setCachedRecords(records = [], versionHash = '') {
       store.put({
         key: 'master_records',
         versionHash,
+        uploadMeta,
         timestamp: Date.now(),
         count: records.length,
         records,

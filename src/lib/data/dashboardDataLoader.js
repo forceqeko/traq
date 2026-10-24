@@ -18,13 +18,30 @@ export function clearDashboardCache() {
   dataCache.clear();
   inMemoryMasterRecords = null;
   inMemoryVersionHash = null;
+  // Preserving IndexedDB allows getMasterRecords to perform lightning-fast incremental syncs
+  // when new batches are added, instead of re-downloading 90k+ rows.
+}
+
+export function forcePurgeDashboardCache() {
+  dataCache.clear();
+  inMemoryMasterRecords = null;
+  inMemoryVersionHash = null;
   clearCachedRecords();
 }
 
-/**
- * Loads all master dataset records with deterministic ordering and smart IndexedDB caching.
- * Resolves the non-deterministic pagination bug and delivers 0.01s instant loading on reloads.
- */
+let syncProgressListener = null;
+export function setSyncProgressListener(fn) {
+  syncProgressListener = fn;
+}
+function notifySyncProgress(info) {
+  if (typeof syncProgressListener === 'function') {
+    try { syncProgressListener(info); } catch (e) {}
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('traq:sync-progress', { detail: info }));
+  }
+}
+
 /**
  * Helper to fetch with exponential backoff retry.
  */
@@ -40,54 +57,147 @@ async function fetchWithRetry(fetchFn, maxRetries = 3, delayMs = 500) {
 }
 
 /**
- * Loads all master dataset records with deterministic ordering, index-aware queries, and smart IndexedDB caching.
- * Uses indexed monthly batch queries to completely eliminate Postgres statement timeouts.
+ * Normalizes a single raw record from data_records into the standard TRAQ format.
+ */
+function normalizeRawRecord(item, dsMap) {
+  const ds = dsMap.get(item.dataset_id);
+  const row = { ...(item.row_data || {}) };
+  row.id = item.id;
+  row._id = item.id;
+  row._upload_id = item.upload_id;
+  row._dataset_id = item.dataset_id;
+  row._commodity_type = ds?.commodity_type || '';
+  row._traffic_type = ds?.traffic_type || '';
+  row._dataset_code = ds?.code || '';
+  row._dataset_name = ds?.name || '';
+  row.period_month = item.period_month;
+  row.period_year = item.period_year;
+
+  if (!row.Komoditas && ds?.commodity_type) {
+    row.Komoditas = capitalize(ds.commodity_type);
+  }
+  if (!row.Arah_Lalu_Lintas && ds?.traffic_type) {
+    row.Arah_Lalu_Lintas = formatTrafficName(ds.traffic_type);
+  }
+  if (!row.Bulan && item.period_month) {
+    row.Bulan = getMonthName(item.period_month);
+  }
+
+  row.Satpel = resolveSatpelColumn(row);
+
+  const extractedVol = parseNumber(
+    row['Netto P8'] ??
+    row['Netto P1'] ??
+    row.Netto ??
+    row['Vol P1'] ??
+    row.Volume ??
+    row['Vol Lain'] ??
+    row.Jumlah ??
+    row.Kuantitas ??
+    0
+  );
+  row.Volume = extractedVol;
+
+  const extractedPrice = parseNumber(
+    row.Nilai_Rupiah ??
+    row['Harga Barang (Rp)'] ??
+    row.Harga ??
+    0
+  );
+  row.Nilai_Rupiah = extractedPrice;
+
+  return row;
+}
+
+/**
+ * Efficiently fetches chunks for specified uploads using a controlled concurrency worker pool.
+ */
+async function fetchUploadsChunks(supabase, targetUploads, dsMap) {
+  if (!targetUploads || targetUploads.length === 0) return [];
+
+  const tasks = [];
+  for (const up of targetUploads) {
+    const rowCount = up.row_count || 0;
+    if (rowCount === 0) continue;
+    const numChunks = Math.ceil(rowCount / 1000);
+    for (let c = 0; c < numChunks; c++) {
+      tasks.push({
+        uploadId: up.id,
+        from: c * 1000,
+        to: (c + 1) * 1000 - 1,
+      });
+    }
+  }
+
+  if (tasks.length === 0) return [];
+
+  const concurrency = 6;
+  let taskIndex = 0;
+  const fetchedRawRows = [];
+  let completed = 0;
+
+  const worker = async () => {
+    while (taskIndex < tasks.length) {
+      const task = tasks[taskIndex++];
+      const rows = await fetchWithRetry(async () => {
+        const res = await supabase
+          .from('data_records')
+          .select('id, dataset_id, upload_id, period_month, period_year, row_data')
+          .eq('upload_id', task.uploadId)
+          .range(task.from, task.to);
+
+        if (res.error) {
+          throw new Error(`Upload ${task.uploadId} chunk (${task.from}-${task.to}) failed: ${res.error.message}`);
+        }
+        return res.data || [];
+      });
+
+      if (rows && rows.length > 0) {
+        fetchedRawRows.push(...rows);
+      }
+      completed++;
+      notifySyncProgress({
+        completed,
+        total: tasks.length,
+        percent: Math.round((completed / tasks.length) * 100),
+      });
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker())
+  );
+
+  // Deduplicate by item.id
+  const seenIds = new Set();
+  const deduped = [];
+  for (const item of fetchedRawRows) {
+    if (!seenIds.has(item.id)) {
+      seenIds.add(item.id);
+      deduped.push(item);
+    }
+  }
+
+  return deduped.map((item) => normalizeRawRecord(item, dsMap));
+}
+
+/**
+ * Loads all master dataset records with deterministic ordering, smart incremental sync, and IndexedDB caching.
  */
 async function getMasterRecords(supabase) {
-  // 1. Fast in-memory cache return (0ms)
+  // 1. Instant in-memory cache return (0ms)
   if (inMemoryMasterRecords && inMemoryMasterRecords.length > 0) {
     return { records: inMemoryMasterRecords, versionHash: inMemoryVersionHash };
   }
 
-  // 2. Prevent concurrent duplicate fetch requests (singleton promise pattern)
+  // 2. Prevent duplicate in-flight fetch requests (singleton pattern)
   if (activeFetchPromise) {
     return activeFetchPromise;
   }
 
   activeFetchPromise = (async () => {
     try {
-      // 3. Get latest sync version timestamp from upload_history (fast 50ms query)
-      const { data: latestUpload } = await supabase
-        .from('upload_history')
-        .select('uploaded_at')
-        .order('uploaded_at', { ascending: false })
-        .limit(1);
-
-      const currentVersionHash = latestUpload?.[0]?.uploaded_at || 'empty_initial';
-
-      // Get exact total rows count
-      const { count: exactCount } = await supabase
-        .from('data_records')
-        .select('*', { count: 'exact', head: true });
-      const totalCount = exactCount || 0;
-
-      // 4. Check persistent IndexedDB cache (verify versionHash AND total rows integrity)
-      const cached = await getCachedRecords();
-      if (
-        cached &&
-        cached.versionHash === currentVersionHash &&
-        cached.records &&
-        cached.records.length >= totalCount &&
-        totalCount > 0
-      ) {
-        inMemoryMasterRecords = cached.records;
-        inMemoryVersionHash = cached.versionHash;
-        console.log(`⚡ [TRAQ Cache] Loaded ${cached.records.length.toLocaleString('id-ID')} records from IndexedDB in instant mode!`);
-        return { records: cached.records, versionHash: cached.versionHash };
-      }
-
-      // 5. Cache miss, outdated, or incomplete: Fetch from Supabase
-      console.log(`🔄 [TRAQ Sync] Fetching ${totalCount.toLocaleString('id-ID')} master records from Supabase...`);
+      // 3. Load dataset definitions
       if (!cachedDatasets) {
         const { data: dsData } = await supabase
           .from('datasets')
@@ -97,144 +207,102 @@ async function getMasterRecords(supabase) {
       const dsMap = new Map();
       cachedDatasets.forEach((d) => dsMap.set(d.id, d));
 
-      if (totalCount === 0) {
+      // 4. Load all active upload history metadata (fast ~50ms query)
+      const { data: uploads, error: upErr } = await supabase
+        .from('upload_history')
+        .select('id, dataset_id, period_month, period_year, row_count, uploaded_at')
+        .order('uploaded_at', { ascending: false });
+
+      if (upErr) throw upErr;
+      const activeUploads = uploads || [];
+      const totalExpectedRows = activeUploads.reduce((s, u) => s + (u.row_count || 0), 0);
+
+      if (totalExpectedRows === 0) {
         inMemoryMasterRecords = [];
-        inMemoryVersionHash = currentVersionHash;
-        await setCachedRecords([], currentVersionHash);
-        return { records: [], versionHash: currentVersionHash };
+        inMemoryVersionHash = 'empty';
+        return { records: [], versionHash: 'empty' };
       }
 
-      // Parallel fetching utilizing the compound index (dataset_id, period_year, period_month)
-      // Each dataset-month subset is small (100-2500 rows), eliminating statement timeouts 100%.
-      const fetchDatasetMonth = async (datasetId, month) => {
-        const { count: countItem, error: cntErr } = await supabase
-          .from('data_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('dataset_id', datasetId)
-          .eq('period_month', month);
-
-        if (cntErr || !countItem) return [];
-
-        const chunkSize = 1000;
-        const numChunks = Math.ceil(countItem / chunkSize);
-        const chunkPromises = [];
-
-        for (let i = 0; i < numChunks; i++) {
-          const from = i * chunkSize;
-          const to = from + chunkSize - 1;
-          chunkPromises.push(
-            fetchWithRetry(async () => {
-              const res = await supabase
-                .from('data_records')
-                .select('id, dataset_id, period_month, period_year, row_data')
-                .eq('dataset_id', datasetId)
-                .eq('period_month', month)
-                .order('id', { ascending: true })
-                .range(from, to);
-
-              if (res.error) {
-                throw new Error(`Dataset ${datasetId} Month ${month} chunk (${from}-${to}) failed: ${res.error.message}`);
-              }
-              return res.data || [];
-            })
-          );
-        }
-
-        const chunkResults = await Promise.all(chunkPromises);
-        return chunkResults.flat();
-      };
-
-      const tasks = [];
-      for (const ds of cachedDatasets) {
-        for (let m = 1; m <= 12; m++) {
-          tasks.push({ datasetId: ds.id, month: m });
-        }
-      }
-
-      const concurrency = 12;
-      const allRows = [];
-      for (let i = 0; i < tasks.length; i += concurrency) {
-        const batch = tasks.slice(i, i + concurrency);
-        const batchResults = await Promise.all(
-          batch.map((t) => fetchDatasetMonth(t.datasetId, t.month))
-        );
-        batchResults.forEach((rows) => allRows.push(...rows));
-      }
-
-      // Deduplicate by row ID to prevent any overlap from parallel fetching
-      const seenIds = new Set();
-      const dedupedRows = [];
-      for (const row of allRows) {
-        if (!seenIds.has(row.id)) {
-          seenIds.add(row.id);
-          dedupedRows.push(row);
-        }
-      }
-      if (dedupedRows.length !== allRows.length) {
-        console.warn(`⚠️ [TRAQ Sync] Removed ${allRows.length - dedupedRows.length} duplicate rows during dedup.`);
-      }
-      const finalRows = dedupedRows;
-
-      // Normalize all records once and store to IndexedDB
-      const normalized = finalRows.map((item) => {
-        const ds = dsMap.get(item.dataset_id);
-        const row = { ...(item.row_data || {}) };
-        row.id = item.id;
-        row._id = item.id;
-        row._dataset_id = item.dataset_id;
-        row._commodity_type = ds?.commodity_type || '';
-        row._traffic_type = ds?.traffic_type || '';
-        row._dataset_code = ds?.code || '';
-        row._dataset_name = ds?.name || '';
-        row.period_month = item.period_month;
-        row.period_year = item.period_year;
-
-        if (!row.Komoditas && ds?.commodity_type) {
-          row.Komoditas = capitalize(ds.commodity_type);
-        }
-        if (!row.Arah_Lalu_Lintas && ds?.traffic_type) {
-          row.Arah_Lalu_Lintas = formatTrafficName(ds.traffic_type);
-        }
-        if (!row.Bulan && item.period_month) {
-          row.Bulan = getMonthName(item.period_month);
-        }
-
-        row.Satpel = resolveSatpelColumn(row);
-
-        const extractedVol = parseNumber(
-          row['Netto P8'] ??
-          row['Netto P1'] ??
-          row.Netto ??
-          row['Vol P1'] ??
-          row.Volume ??
-          row['Vol Lain'] ??
-          row.Jumlah ??
-          row.Kuantitas ??
-          0
-        );
-        row.Volume = extractedVol;
-
-        const extractedPrice = parseNumber(
-          row.Nilai_Rupiah ??
-          row['Harga Barang (Rp)'] ??
-          row.Harga ??
-          0
-        );
-        row.Nilai_Rupiah = extractedPrice;
-
-        return row;
+      // Deterministic version hash & uploadMeta mapping
+      const sortedUploads = [...activeUploads].sort((a, b) => a.id.localeCompare(b.id));
+      const currentVersionHash = sortedUploads.map((u) => `${u.id}:${u.uploaded_at}:${u.row_count}`).join('|') || 'empty';
+      const activeUploadMeta = {};
+      activeUploads.forEach((u) => {
+        activeUploadMeta[u.id] = u.uploaded_at;
       });
+
+      // 5. Check persistent IndexedDB cache
+      const cached = await getCachedRecords();
+
+      // Case 5A: Exact cache hit (Instant return)
+      if (
+        cached &&
+        cached.versionHash === currentVersionHash &&
+        Array.isArray(cached.records) &&
+        cached.records.length > 0
+      ) {
+        inMemoryMasterRecords = cached.records;
+        inMemoryVersionHash = cached.versionHash;
+        console.log(`⚡ [TRAQ Cache] Loaded ${cached.records.length.toLocaleString('id-ID')} records from IndexedDB in instant mode!`);
+        return { records: cached.records, versionHash: cached.versionHash };
+      }
+
+      // Case 5B: Incremental sync (New or updated batches exist)
+      if (
+        cached &&
+        Array.isArray(cached.records) &&
+        cached.records.length > 0 &&
+        cached.uploadMeta &&
+        typeof cached.uploadMeta === 'object'
+      ) {
+        const currentUploadIds = new Set(activeUploads.map((u) => u.id));
+        const missingOrUpdatedUploads = activeUploads.filter(
+          (u) => cached.uploadMeta[u.id] !== u.uploaded_at
+        );
+
+        // Valid cached records from active, unmodified uploads
+        const validRetained = cached.records.filter((r) => {
+          const upId = r._upload_id;
+          return upId && currentUploadIds.has(upId) && cached.uploadMeta[upId] === activeUploadMeta[upId];
+        });
+
+        // Only do incremental if we actually retain a significant portion of cached data
+        if (validRetained.length > 0 && missingOrUpdatedUploads.length < activeUploads.length) {
+          console.log(`🔄 [TRAQ Incremental Sync] Fetching ${missingOrUpdatedUploads.length} new/updated batches (${validRetained.length.toLocaleString('id-ID')} retained from cache)...`);
+          const newNormalized = await fetchUploadsChunks(supabase, missingOrUpdatedUploads, dsMap);
+          const merged = [...validRetained, ...newNormalized];
+
+          inMemoryMasterRecords = merged;
+          inMemoryVersionHash = currentVersionHash;
+          await setCachedRecords(merged, currentVersionHash, activeUploadMeta);
+          console.log(`💾 [TRAQ Incremental Sync] Merged and saved ${merged.length.toLocaleString('id-ID')} records to IndexedDB.`);
+          return { records: merged, versionHash: currentVersionHash };
+        }
+      }
+
+      // Case 5C: Cold start / Full sync
+      console.log(`🔄 [TRAQ Full Sync] Fetching ${totalExpectedRows.toLocaleString('id-ID')} records across ${activeUploads.length} batches...`);
+      const normalized = await fetchUploadsChunks(supabase, activeUploads, dsMap);
 
       inMemoryMasterRecords = normalized;
       inMemoryVersionHash = currentVersionHash;
-
-      // Save to IndexedDB persistently only if full dataset was received
-      if (normalized.length >= totalCount * 0.99) {
-        await setCachedRecords(normalized, currentVersionHash);
+      if (normalized.length >= totalExpectedRows * 0.98) {
+        await setCachedRecords(normalized, currentVersionHash, activeUploadMeta);
         console.log(`💾 [TRAQ Cache] Saved ${normalized.length.toLocaleString('id-ID')} records to IndexedDB.`);
       }
 
       return { records: normalized, versionHash: currentVersionHash };
+    } catch (err) {
+      console.error('Master records sync error:', err);
+      // Fallback: If network request failed, use cached records to prevent empty UI
+      const cached = await getCachedRecords();
+      if (cached && Array.isArray(cached.records) && cached.records.length > 0) {
+        console.warn('Falling back to existing cached records.');
+        inMemoryMasterRecords = cached.records;
+        inMemoryVersionHash = cached.versionHash;
+        return { records: cached.records, versionHash: cached.versionHash };
+      }
+      throw err;
     } finally {
       activeFetchPromise = null;
     }

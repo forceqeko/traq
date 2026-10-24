@@ -23,6 +23,17 @@ export default function Home() {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [syncProgress, setSyncProgress] = useState(null);
+
+  useEffect(() => {
+    const handleProgress = (e) => {
+      if (e?.detail) {
+        setSyncProgress(e.detail);
+      }
+    };
+    window.addEventListener('traq:sync-progress', handleProgress);
+    return () => window.removeEventListener('traq:sync-progress', handleProgress);
+  }, []);
 
   useEffect(() => {
     fetchLiveData();
@@ -38,12 +49,13 @@ export default function Home() {
     periodFilter.selectedPospels,
   ]);
 
-
   const fetchLiveData = async () => {
     setIsLoading(true);
+    setSyncProgress(null);
     const data = await loadPageDashboardData('home', periodFilter);
     setDashboardData(data);
     setIsLoading(false);
+    setSyncProgress(null);
   };
 
   const formatPeriodLabel = () =>
@@ -79,7 +91,14 @@ export default function Home() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <h2 style={{ fontSize: '1.25rem' }}>Dashboard TRAQ</h2>
-            {isLoading && <Loader2 size={16} className="spin" style={{ color: 'var(--primary)' }} />}
+            {isLoading && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--primary)', fontWeight: 500 }}>
+                <Loader2 size={15} className="spin" />
+                <span>
+                  {syncProgress?.percent ? `Sinkronisasi (${syncProgress.percent}%)` : 'Sinkronisasi data...'}
+                </span>
+              </div>
+            )}
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
             Ringkasan data operasional sertifikat karantina ({formatPeriodLabel()}): Balai Karantina Hewan, Ikan dan Tumbuhan Sulawesi Utara

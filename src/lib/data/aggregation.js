@@ -358,9 +358,33 @@ export function getK11Id(row) {
     row['K.1.1'] ??
     row['No K11'] ??
     row.No_K11 ??
+    row.no_k11 ??
+    null;
+  if (!val) return null;
+  const str = String(val).trim();
+  if (!str || str === '-' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') return null;
+  return str;
+}
+
+/**
+ * Ekstraksi Nomor Permohonan Pengajuan (No. Aju)
+ * @param {object} row - The row object
+ * @returns {string|null} Cleaned No. Aju or null if missing
+ */
+export function getAjuId(row) {
+  if (!row) return null;
+  const val =
     row['No. Aju'] ??
     row['No Aju'] ??
     row['No_Aju'] ??
+    row['Nomor Aju'] ??
+    row['Nomor_Aju'] ??
+    row['No. Pengajuan'] ??
+    row['No Pengajuan'] ??
+    row['Nomor Pengajuan'] ??
+    row['No_Pengajuan'] ??
+    row.No_Aju ??
+    row.no_aju ??
     null;
   if (!val) return null;
   const str = String(val).trim();

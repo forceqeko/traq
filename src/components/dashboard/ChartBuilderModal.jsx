@@ -186,6 +186,7 @@ export default function ChartBuilderModal({
   const initialSortBy = useMemo(() => {
     if (safeConfig.sort_by) return safeConfig.sort_by;
     const yLower = String(safeConfig.y_axis || '').toLowerCase();
+    if (yLower.includes('aju')) return 'no_aju_desc';
     if (yLower.includes('k.1.1') || yLower.includes('k11')) return 'k11_desc';
     if (yLower.includes('persen') || yLower.includes('ratio')) return 'percentage_desc';
     if (yLower.includes('vol') || yLower.includes('netto') || yLower.includes('berat')) return 'vol_desc';
@@ -395,6 +396,9 @@ export default function ChartBuilderModal({
     { id: 'k11', label: 'Frekuensi No. K.1.1 (Verifikasi Pengajuan - Unique)', desc: 'Total formulir verifikasi pengajuan unik (No. K.1.1)' },
     { id: 'percentage', label: 'Persentase Sertifikasi (No. Dokumen vs No. K.1.1)', desc: 'Persentase penyelesaian No. Dokumen terhadap No. K.1.1 serta status selisih' },
     { id: 'diff', label: 'Selisih Sertifikasi (K.1.1 - Nomor Dokumen)', desc: 'Selisih dokumen pengajuan K.1.1 dengan sertifikat resmi terbit' },
+    { id: 'no_aju', label: 'Frekuensi No. Aju (Permohonan - Unique)', desc: 'Total nomor permohonan pengajuan unik (No. Aju)' },
+    { id: 'percentage_aju', label: 'Persentase Realisasi (No. Dokumen vs No. Aju)', desc: 'Persentase penyelesaian No. Dokumen terhadap No. Aju serta status selisih' },
+    { id: 'diff_aju', label: 'Selisih Permohonan (No. Aju - Nomor Dokumen)', desc: 'Selisih permohonan No. Aju dengan sertifikat resmi terbit' },
     { id: 'rows', label: 'Jumlah Rincian Komoditas (Baris)', desc: 'Total baris data item komoditas' },
     { id: 'volume', label: 'Total Berat/Netto (Kg)', desc: 'Penjumlahan berat terkonversi Kilogram (Netto P8)' },
     { id: 'value', label: 'Total Nilai Komoditas (Rp)', desc: 'Penjumlahan nilai rupiah barang' },
@@ -424,20 +428,35 @@ export default function ChartBuilderModal({
     // Auto-adjust sortByMetric if the current sort metric was deselected
     if (!next.includes('certs') && sortByMetric.startsWith('certs')) {
       if (next.includes('k11')) setSortByMetric('k11_desc');
+      else if (next.includes('no_aju')) setSortByMetric('no_aju_desc');
       else if (next.includes('percentage')) setSortByMetric('percentage_desc');
+      else if (next.includes('percentage_aju')) setSortByMetric('percentage_aju_desc');
       else if (next.includes('volume')) setSortByMetric('vol_desc');
       else if (next.includes('value')) setSortByMetric('val_desc');
       else if (next.includes('rows')) setSortByMetric('rows_desc');
     } else if (!next.includes('k11') && sortByMetric.startsWith('k11')) {
       if (next.includes('certs')) setSortByMetric('certs_desc');
+      else if (next.includes('no_aju')) setSortByMetric('no_aju_desc');
       else if (next.includes('percentage')) setSortByMetric('percentage_desc');
       else if (next.includes('volume')) setSortByMetric('vol_desc');
-    } else if (!next.includes('percentage') && sortByMetric.startsWith('percentage')) {
+    } else if (!next.includes('no_aju') && sortByMetric.startsWith('no_aju')) {
+      if (next.includes('certs')) setSortByMetric('certs_desc');
+      else if (next.includes('k11')) setSortByMetric('k11_desc');
+      else if (next.includes('percentage_aju')) setSortByMetric('percentage_aju_desc');
+      else if (next.includes('volume')) setSortByMetric('vol_desc');
+    } else if (!next.includes('percentage') && sortByMetric.startsWith('percentage') && !sortByMetric.includes('aju')) {
       if (next.includes('certs')) setSortByMetric('certs_desc');
       else if (next.includes('k11')) setSortByMetric('k11_desc');
       else if (next.includes('volume')) setSortByMetric('vol_desc');
-    } else if (!next.includes('diff') && sortByMetric.startsWith('diff')) {
+    } else if (!next.includes('percentage_aju') && sortByMetric.startsWith('percentage_aju')) {
+      if (next.includes('certs')) setSortByMetric('certs_desc');
+      else if (next.includes('no_aju')) setSortByMetric('no_aju_desc');
+      else if (next.includes('volume')) setSortByMetric('vol_desc');
+    } else if (!next.includes('diff') && sortByMetric.startsWith('diff') && !sortByMetric.includes('aju')) {
       if (next.includes('percentage')) setSortByMetric('percentage_desc');
+      else if (next.includes('certs')) setSortByMetric('certs_desc');
+    } else if (!next.includes('diff_aju') && sortByMetric.startsWith('diff_aju')) {
+      if (next.includes('percentage_aju')) setSortByMetric('percentage_aju_desc');
       else if (next.includes('certs')) setSortByMetric('certs_desc');
     } else if (!next.includes('volume') && sortByMetric.startsWith('vol')) {
       if (next.includes('value')) setSortByMetric('val_desc');
@@ -950,11 +969,16 @@ export default function ChartBuilderModal({
                               <select className="select" value={sortByMetric} onChange={(e) => setSortByMetric(e.target.value)}>
                                 <option value="certs_desc">Sertifikat Terbanyak (Nomor Dokumen)</option>
                                 <option value="certs_asc">Sertifikat Terendah (Nomor Dokumen)</option>
-                                <option value="k11_desc">No. K.1.1 Terbanyak (Pengajuan)</option>
-                                <option value="k11_asc">No. K.1.1 Terendah (Pengajuan)</option>
-                                <option value="percentage_desc">Persentase Tertinggi (%)</option>
-                                <option value="percentage_asc">Persentase Terendah (%)</option>
+                                <option value="k11_desc">No. K.1.1 Terbanyak (Verifikasi)</option>
+                                <option value="k11_asc">No. K.1.1 Terendah (Verifikasi)</option>
+                                <option value="no_aju_desc">No. Aju Terbanyak (Permohonan)</option>
+                                <option value="no_aju_asc">No. Aju Terendah (Permohonan)</option>
+                                <option value="percentage_desc">Persentase Tertinggi vs K.1.1 (%)</option>
+                                <option value="percentage_asc">Persentase Terendah vs K.1.1 (%)</option>
+                                <option value="percentage_aju_desc">Persentase Tertinggi vs No. Aju (%)</option>
+                                <option value="percentage_aju_asc">Persentase Terendah vs No. Aju (%)</option>
                                 <option value="diff_desc">Selisih Terbesar (K.1.1 - Dokumen)</option>
+                                <option value="diff_aju_desc">Selisih Terbesar (No. Aju - Dokumen)</option>
                                 <option value="vol_desc">Volume / Berat Terbesar</option>
                                 <option value="val_desc">Nilai Rupiah Terbesar</option>
                                 <option value="name_asc">Nama (A - Z)</option>

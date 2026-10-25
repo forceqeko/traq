@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { getCertificateId } from '@/lib/data/aggregation';
+import { COMMODITY_COLORS } from '@/lib/data/commodityColors';
 import styles from './charts.module.css';
 import {
   FileText,
@@ -133,9 +134,9 @@ export default function KpiCardComponent({
 
     const tLower = (title + ' ' + yAxis).toLowerCase();
 
-    if (tLower.includes('ikan')) return { chosenIcon: Fish, chosenColor: 'var(--accent-teal)' };
-    if (tLower.includes('hewan')) return { chosenIcon: Dog, chosenColor: 'var(--accent-amber)' };
-    if (tLower.includes('tumbuhan')) return { chosenIcon: Sprout, chosenColor: 'var(--accent-green)' };
+    if (tLower.includes('ikan')) return { chosenIcon: Fish, chosenColor: COMMODITY_COLORS.ikan };
+    if (tLower.includes('hewan')) return { chosenIcon: Dog, chosenColor: COMMODITY_COLORS.hewan };
+    if (tLower.includes('tumbuhan')) return { chosenIcon: Sprout, chosenColor: COMMODITY_COLORS.tumbuhan };
     if (tLower.includes('masuk') || tLower.includes('domestik masuk')) return { chosenIcon: Inbox, chosenColor: 'var(--accent-cyan)' };
     if (tLower.includes('keluar') || tLower.includes('domestik keluar')) return { chosenIcon: Send, chosenColor: 'var(--accent-indigo)' };
     if (tLower.includes('ekspor')) return { chosenIcon: Globe, chosenColor: 'var(--accent-purple)' };

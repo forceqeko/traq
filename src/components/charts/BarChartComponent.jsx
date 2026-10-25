@@ -11,6 +11,7 @@ import {
   LabelList,
 } from 'recharts';
 import { formatMonthToShort } from '@/lib/data/monthUtils';
+import { getCommodityColor } from '@/lib/data/commodityColors';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -244,33 +245,40 @@ export default function BarChartComponent({
         <Tooltip content={<CustomTooltip valueUnit={valueUnit} yAxisKey={yAxisKey} />} />
         {isMultiSeries && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />}
         {isMultiSeries ? (
-          activeSeries.map((key, idx) => (
-            <Bar
-              key={key}
-              name={key}
-              dataKey={key}
-              fill={chartColors[idx % chartColors.length]}
-              radius={[4, 4, 0, 0]}
-            >
-              {showDataLabels && (
-                <LabelList
-                  dataKey={key}
-                  content={(props) => renderSmartVerticalBarLabel(props, valueUnit, key)}
-                />
-              )}
-            </Bar>
-          ))
+          activeSeries.map((key, idx) => {
+            const barColor = getCommodityColor(key) || chartColors[idx % chartColors.length];
+            return (
+              <Bar
+                key={key}
+                name={key}
+                dataKey={key}
+                fill={barColor}
+                radius={[4, 4, 0, 0]}
+              >
+                {showDataLabels && (
+                  <LabelList
+                    dataKey={key}
+                    content={(props) => renderSmartVerticalBarLabel(props, valueUnit, key)}
+                  />
+                )}
+              </Bar>
+            );
+          })
         ) : (
           <Bar
             dataKey={yAxisKey}
             radius={[4, 4, 0, 0]}
           >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={chartColors[index % chartColors.length]}
-              />
-            ))}
+            {data.map((entry, index) => {
+              const catName = entry[xAxisKey] || entry.name || '';
+              const cellColor = getCommodityColor(catName) || chartColors[index % chartColors.length];
+              return (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={cellColor}
+                />
+              );
+            })}
             {showDataLabels && (
               <LabelList
                 dataKey={yAxisKey}

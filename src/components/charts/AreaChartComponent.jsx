@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts';
 import { formatMonthToShort } from '@/lib/data/monthUtils';
+import { getCommodityColor } from '@/lib/data/commodityColors';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -144,7 +145,7 @@ export default function AreaChartComponent({
       >
         <defs>
           {activeSeries.map((key, idx) => {
-            const seriesColor = chartColors[idx % chartColors.length];
+            const seriesColor = getCommodityColor(key) || chartColors[idx % chartColors.length];
             return (
               <linearGradient key={`grad-${key}`} id={`colorArea-${idx}`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={seriesColor} stopOpacity={0.35} />
@@ -172,7 +173,7 @@ export default function AreaChartComponent({
         <Tooltip content={<CustomTooltip />} />
         {activeSeries.length > 1 && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />}
         {activeSeries.map((key, idx) => {
-          const seriesColor = chartColors[idx % chartColors.length];
+          const seriesColor = getCommodityColor(key) || chartColors[idx % chartColors.length];
           return (
             <Area
               key={key}

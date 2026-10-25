@@ -7,6 +7,7 @@ import {
   Legend,
 } from 'recharts';
 import { formatMonthToShort } from '@/lib/data/monthUtils';
+import { getCommodityColor } from '@/lib/data/commodityColors';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -103,7 +104,8 @@ export default function PieChartComponent({
     const ex = mx + (cos >= 0 ? 1 : -1) * 14;
     const ey = my;
     const textAnchor = cos >= 0 ? 'start' : 'end';
-    const color = colors[index % colors.length] || '#e2e8f0';
+    const entryItem = chartData[index];
+    const color = (entryItem ? getCommodityColor(entryItem.name) : null) || colors[index % colors.length] || '#e2e8f0';
 
     return (
       <g key={`leader-${index}`}>
@@ -175,9 +177,10 @@ export default function PieChartComponent({
           label={renderCustomizedLabel}
           labelLine={false}
         >
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-          ))}
+          {chartData.map((entry, index) => {
+            const sliceColor = getCommodityColor(entry.name) || colors[index % colors.length];
+            return <Cell key={`cell-${index}`} fill={sliceColor} />;
+          })}
         </Pie>
         <Tooltip
           formatter={(val, name) => {

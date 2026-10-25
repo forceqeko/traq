@@ -20,17 +20,23 @@ export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
   const pathname = location.pathname;
   const { isAdmin } = useUser();
-  const [laluLintasOpen, setLaluLintasOpen] = useState(true);
-  const [karantinaOpen, setKarantinaOpen] = useState(true);
-  const [instalasiOpen, setInstalasiOpen] = useState(true);
-  const [profilingOpen, setProfilingOpen] = useState(true);
-
   const isActive = (path) => pathname === path;
   const isParentActive = (prefix) => pathname.startsWith(prefix);
 
+  const [laluLintasOpen, setLaluLintasOpen] = useState(false);
+  const [karantinaOpen, setKarantinaOpen] = useState(false);
+  const [instalasiOpen, setInstalasiOpen] = useState(false);
+  const [profilingOpen, setProfilingOpen] = useState(false);
+
   useEffect(() => {
-    if (isParentActive('/instalasi')) {
+    if (isParentActive('/lalu-lintas') || isParentActive('/lalu_lintas')) {
+      setLaluLintasOpen(true);
+    } else if (isParentActive('/karantina')) {
+      setKarantinaOpen(true);
+    } else if (isParentActive('/instalasi')) {
       setInstalasiOpen(true);
+    } else if (isParentActive('/profiling')) {
+      setProfilingOpen(true);
     }
   }, [pathname]);
 

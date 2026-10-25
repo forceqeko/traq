@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts';
 import { formatMonthToShort } from '@/lib/data/monthUtils';
+import { getCommodityColor } from '@/lib/data/commodityColors';
 import styles from './charts.module.css';
 
 const DEFAULT_COLORS = [
@@ -161,7 +162,7 @@ export default function LineChartComponent({
         <Tooltip content={<CustomTooltip />} />
         {activeSeries.length > 1 && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />}
         {activeSeries.map((key, idx) => {
-          const lineColor = chartColors[idx % chartColors.length];
+          const lineColor = getCommodityColor(key) || chartColors[idx % chartColors.length];
           return (
             <Line
               key={key}

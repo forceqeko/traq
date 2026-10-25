@@ -9,6 +9,7 @@ import {
   Warehouse,
   Users,
   Settings,
+  AlertTriangle,
   ChevronDown,
   ChevronRight,
   PanelLeftClose,
@@ -235,7 +236,17 @@ export default function Sidebar({ collapsed, onToggle }) {
           )}
         </div>
 
-        {/* 6. Pengaturan */}
+        {/* 6. Anomali Data */}
+        <Link
+          to="/anomali-data"
+          className={`${styles.navItem} ${isParentActive('/anomali') ? styles.active : ''}`}
+          title="Anomali Data"
+        >
+          <AlertTriangle className={styles.navIcon} />
+          {!collapsed && <span className={styles.navLabel}>Anomali Data</span>}
+        </Link>
+
+        {/* 7. Pengaturan */}
         {isAdmin && (
           <>
             {!collapsed && <div className={styles.navGroupTitle}>MANAJEMEN</div>}

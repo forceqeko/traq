@@ -26,6 +26,7 @@ import InstalasiPage from '@/pages/instalasi/InstalasiPage';
 import InstalasiIki from '@/pages/instalasi/InstalasiIki';
 import ProfilingPenggunaJasa from '@/pages/profiling/ProfilingPenggunaJasa';
 import PengaturanIki from '@/pages/pengaturan/PengaturanIki';
+import AnomaliData from '@/pages/anomali/AnomaliData';
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
@@ -81,6 +82,10 @@ export default function App() {
                   <Route path="/profiling/ikan" element={<ProfilingPenggunaJasa commodity="ikan" />} />
                   <Route path="/profiling/tumbuhan" element={<ProfilingPenggunaJasa commodity="tumbuhan" />} />
                   
+                  {/* Anomali Data */}
+                  <Route path="/anomali-data" element={<AnomaliData />} />
+                  <Route path="/anomali" element={<AnomaliData />} />
+
                   {/* Pengaturan / Manajemen */}
                   <Route path="/pengaturan" element={<AdminGuard><Pengaturan /></AdminGuard>} />
                   <Route path="/pengaturan/iki" element={<AdminGuard><PengaturanIki /></AdminGuard>} />

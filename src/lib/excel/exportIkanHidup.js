@@ -20,7 +20,9 @@ export function exportIkanHidupToExcel({
     'No.': index + 1,
     [daerahHeader]: item.daerah || '-',
     'Komoditas': item.komoditas || '-',
-    'Volume (Kg)': item.volume || 0,
+    'Nama Tercetak': item.namaTercetak || '-',
+    'Volume (Kg)': item.volumeKg || 0,
+    'Volume (ekor)': item.volumeEkor || 0,
     'Frekuensi Sertifikat': item.frekuensi || 0,
   }));
 
@@ -29,9 +31,11 @@ export function exportIkanHidupToExcel({
   // Set lebar kolom yang rapi
   worksheet['!cols'] = [
     { wch: 6 },  // No.
-    { wch: 32 }, // Daerah Tujuan / Asal
-    { wch: 35 }, // Komoditas
-    { wch: 20 }, // Volume (Kg)
+    { wch: 30 }, // Daerah Tujuan / Asal
+    { wch: 32 }, // Komoditas
+    { wch: 32 }, // Nama Tercetak
+    { wch: 18 }, // Volume (Kg)
+    { wch: 18 }, // Volume (ekor)
     { wch: 22 }, // Frekuensi Sertifikat
   ];
 

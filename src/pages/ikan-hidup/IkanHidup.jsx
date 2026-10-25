@@ -20,7 +20,7 @@ import {
   ArrowDown,
   RefreshCw,
   AlertCircle,
-  Filter,
+  Hash,
 } from 'lucide-react';
 
 /**
@@ -81,24 +81,91 @@ function resolveNamaKomoditas(row) {
 }
 
 /**
- * Ekstraksi angka volume (Netto P8 / Netto P1 / Volume)
+ * Resolusi Nama Tercetak (Nama Latin atau nama yang tercetak pada sertifikat)
  */
-function resolveRowVolume(row) {
-  if (!row) return 0;
+function resolveNamaTercetak(row) {
+  if (!row) return '-';
   const val =
-    row['Netto P8'] ??
-    row['Netto P1'] ??
-    row.Netto ??
-    row['Vol P1'] ??
-    row.Volume ??
-    row['Vol Lain'] ??
-    row.Jumlah ??
-    row.Kuantitas ??
-    0;
-  if (typeof val === 'number') return val;
+    row['Nama Tercetak'] ||
+    row['Nama_Tercetak'] ||
+    row['nama_tercetak'] ||
+    row['Nama Latin'] ||
+    row['Nama_Latin'] ||
+    row['Tercetak'] ||
+    '-';
+  const cleaned = String(val).trim();
+  return cleaned && cleaned !== 'null' && cleaned !== 'undefined' ? cleaned : '-';
+}
+
+/**
+ * Parse numeric value cleanly
+ */
+function parseNumericValue(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
   const str = String(val).replace(/[Rp\s]/g, '').replace(/,/g, '');
   const parsed = parseFloat(str);
   return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
+ * Ekstraksi angka volume dalam Kg (Netto P8 / Netto P1 / Netto / Volume)
+ */
+function resolveVolumeKg(row) {
+  if (!row) return 0;
+  const val =
+    row['Netto P8'] ??
+    row['Netto_P8'] ??
+    row['Netto P1'] ??
+    row['Netto'] ??
+    row['Vol P1'] ??
+    row.Volume ??
+    row.Jumlah ??
+    row.Kuantitas ??
+    0;
+  return parseNumericValue(val);
+}
+
+/**
+ * Ekstraksi angka volume dalam Ekor (diambil dari header Satuan Lain / Vol Lain)
+ */
+function resolveVolumeEkor(row) {
+  if (!row) return 0;
+
+  // 1. Cek langsung header Satuan Lain jika berisi nilai numerik
+  const rawSatuanLain = row['Satuan Lain'] ?? row['Satuan_Lain'] ?? row['satuan_lain'];
+  if (rawSatuanLain !== undefined && rawSatuanLain !== null && rawSatuanLain !== '') {
+    const numDirect = parseNumericValue(rawSatuanLain);
+    if (numDirect > 0 && (typeof rawSatuanLain === 'number' || /^\d+/.test(String(rawSatuanLain).trim()))) {
+      return numDirect;
+    }
+  }
+
+  // 2. Cek header Vol Lain / Volume Lain (kolom jumlah untuk Satuan Lain pada standar karantina)
+  const rawVolLain =
+    row['Vol Lain'] ??
+    row['Vol_Lain'] ??
+    row['Volume Lain'] ??
+    row['Volume_Lain'] ??
+    row['Vol. Lain'] ??
+    row['Jumlah Satuan Lain'] ??
+    row['Jml Satuan Lain'];
+
+  if (rawVolLain !== undefined && rawVolLain !== null && rawVolLain !== '') {
+    const numVol = parseNumericValue(rawVolLain);
+    if (numVol > 0) {
+      return numVol;
+    }
+  }
+
+  // 3. Cek variasi kolom ekor
+  const rawEkor = row['Ekor'] ?? row['Jumlah Ekor'] ?? row['Volume (Ekor)'] ?? row['Vol Ekor'] ?? row['Jml Ekor'];
+  if (rawEkor !== undefined && rawEkor !== null) {
+    const numEkor = parseNumericValue(rawEkor);
+    if (numEkor > 0) return numEkor;
+  }
+
+  return 0;
 }
 
 /**
@@ -140,7 +207,7 @@ export default function IkanHidup() {
 
   // Table controls
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortField, setSortField] = useState('volume');
+  const [sortField, setSortField] = useState('volumeKg');
   const [sortAsc, setSortAsc] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -215,16 +282,18 @@ export default function IkanHidup() {
     });
   }, [rawRecords, isDokel, onlyIkanHidupFilter]);
 
-  // Agregasi grup berdasarkan (Daerah, Komoditas)
+  // Agregasi grup berdasarkan (Daerah, Komoditas, Nama Tercetak)
   const aggregatedData = useMemo(() => {
     const groupMap = new Map();
 
     relevantRows.forEach((row, idx) => {
       const daerah = isDokel ? resolveDaerahTujuan(row) : resolveDaerahAsal(row);
       const komoditas = resolveNamaKomoditas(row);
-      const key = `${daerah}___${komoditas}`;
+      const namaTercetak = resolveNamaTercetak(row);
+      const key = `${daerah}___${komoditas}___${namaTercetak}`;
 
-      const vol = resolveRowVolume(row);
+      const volKg = resolveVolumeKg(row);
+      const volEkor = resolveVolumeEkor(row);
       const certId = getCertificateId(row, idx);
 
       if (!groupMap.has(key)) {
@@ -232,13 +301,16 @@ export default function IkanHidup() {
           id: key,
           daerah,
           komoditas,
-          volume: 0,
+          namaTercetak,
+          volumeKg: 0,
+          volumeEkor: 0,
           certs: new Set(),
         });
       }
 
       const item = groupMap.get(key);
-      item.volume += vol;
+      item.volumeKg += volKg;
+      item.volumeEkor += volEkor;
       if (certId) {
         item.certs.add(certId);
       }
@@ -248,14 +320,17 @@ export default function IkanHidup() {
       id: item.id,
       daerah: item.daerah,
       komoditas: item.komoditas,
-      volume: Math.round(item.volume * 100) / 100,
+      namaTercetak: item.namaTercetak,
+      volumeKg: Math.round(item.volumeKg * 100) / 100,
+      volumeEkor: Math.round(item.volumeEkor * 100) / 100,
       frekuensi: item.certs.size || 1,
     }));
   }, [relevantRows, isDokel]);
 
   // Hitung ringkasan KPI
   const kpis = useMemo(() => {
-    const totalVol = aggregatedData.reduce((acc, curr) => acc + curr.volume, 0);
+    const totalVolKg = aggregatedData.reduce((acc, curr) => acc + curr.volumeKg, 0);
+    const totalVolEkor = aggregatedData.reduce((acc, curr) => acc + curr.volumeEkor, 0);
     const allCerts = new Set();
     const uniqueDaerah = new Set();
     const uniqueKomoditas = new Set();
@@ -271,7 +346,8 @@ export default function IkanHidup() {
     });
 
     return {
-      totalVolume: Math.round(totalVol * 100) / 100,
+      totalVolumeKg: Math.round(totalVolKg * 100) / 100,
+      totalVolumeEkor: Math.round(totalVolEkor * 100) / 100,
       totalFrekuensi: allCerts.size || aggregatedData.reduce((acc, curr) => acc + curr.frekuensi, 0),
       totalKomoditas: uniqueKomoditas.size,
       totalDaerah: uniqueDaerah.size,
@@ -287,7 +363,8 @@ export default function IkanHidup() {
       result = result.filter(
         (item) =>
           item.daerah.toLowerCase().includes(q) ||
-          item.komoditas.toLowerCase().includes(q)
+          item.komoditas.toLowerCase().includes(q) ||
+          item.namaTercetak.toLowerCase().includes(q)
       );
     }
 
@@ -375,7 +452,7 @@ export default function IkanHidup() {
 
       {/* 2. KPI Summary Cards */}
       <div className={styles.kpiGrid}>
-        {/* KPI 1: Total Volume */}
+        {/* KPI 1: Total Volume (Kg) */}
         <div className={styles.kpiCard}>
           <div
             className={styles.kpiIconWrapper}
@@ -384,19 +461,36 @@ export default function IkanHidup() {
             <Scale size={20} />
           </div>
           <div className={styles.kpiInfo}>
-            <span className={styles.kpiLabel}>TOTAL VOLUME</span>
+            <span className={styles.kpiLabel}>TOTAL VOLUME (KG)</span>
             <span className={styles.kpiValue}>
-              {kpis.totalVolume.toLocaleString('id-ID')} <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Kg</span>
+              {kpis.totalVolumeKg.toLocaleString('id-ID')} <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Kg</span>
             </span>
-            <span className={styles.kpiSub}>Volume komoditas terverifikasi</span>
+            <span className={styles.kpiSub}>Volume berat komoditas</span>
           </div>
         </div>
 
-        {/* KPI 2: Frekuensi Sertifikat */}
+        {/* KPI 2: Total Volume (Ekor) */}
         <div className={styles.kpiCard}>
           <div
             className={styles.kpiIconWrapper}
             style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10B981' }}
+          >
+            <Hash size={20} />
+          </div>
+          <div className={styles.kpiInfo}>
+            <span className={styles.kpiLabel}>TOTAL VOLUME (EKOR)</span>
+            <span className={styles.kpiValue}>
+              {kpis.totalVolumeEkor.toLocaleString('id-ID')} <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Ekor</span>
+            </span>
+            <span className={styles.kpiSub}>Jumlah dari Satuan Lain</span>
+          </div>
+        </div>
+
+        {/* KPI 3: Frekuensi Sertifikat */}
+        <div className={styles.kpiCard}>
+          <div
+            className={styles.kpiIconWrapper}
+            style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)', color: '#6366F1' }}
           >
             <FileCheck size={20} />
           </div>
@@ -407,7 +501,7 @@ export default function IkanHidup() {
           </div>
         </div>
 
-        {/* KPI 3: Total Komoditas */}
+        {/* KPI 4: Total Komoditas */}
         <div className={styles.kpiCard}>
           <div
             className={styles.kpiIconWrapper}
@@ -422,7 +516,7 @@ export default function IkanHidup() {
           </div>
         </div>
 
-        {/* KPI 4: Total Daerah */}
+        {/* KPI 5: Total Daerah */}
         <div className={styles.kpiCard}>
           <div
             className={styles.kpiIconWrapper}
@@ -488,7 +582,7 @@ export default function IkanHidup() {
               <input
                 type="text"
                 className={styles.searchInput}
-                placeholder={`Cari ${daerahHeaderLabel.toLowerCase()} atau komoditas...`}
+                placeholder={`Cari ${daerahHeaderLabel.toLowerCase()}, komoditas, atau nama tercetak...`}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -536,14 +630,30 @@ export default function IkanHidup() {
                     {getSortIcon('komoditas')}
                   </div>
                 </th>
+                <th className={styles.sortable} onClick={() => handleSort('namaTercetak')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>Nama Tercetak</span>
+                    {getSortIcon('namaTercetak')}
+                  </div>
+                </th>
                 <th
                   className={styles.sortable}
                   style={{ textAlign: 'right' }}
-                  onClick={() => handleSort('volume')}
+                  onClick={() => handleSort('volumeKg')}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
                     <span>Volume (Kg)</span>
-                    {getSortIcon('volume')}
+                    {getSortIcon('volumeKg')}
+                  </div>
+                </th>
+                <th
+                  className={styles.sortable}
+                  style={{ textAlign: 'right' }}
+                  onClick={() => handleSort('volumeEkor')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                    <span>Volume (ekor)</span>
+                    {getSortIcon('volumeEkor')}
                   </div>
                 </th>
                 <th
@@ -561,14 +671,14 @@ export default function IkanHidup() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
                     <RefreshCw size={20} className="spin" style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: '0.5rem' }} />
                     <span>Memuat data tabel Ikan Hidup...</span>
                   </td>
                 </tr>
               ) : errorMsg ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#EF4444' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#EF4444' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                       <AlertCircle size={32} />
                       <span style={{ fontWeight: 600 }}>Terjadi kesalahan saat memuat data:</span>
@@ -578,7 +688,7 @@ export default function IkanHidup() {
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-secondary)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                       <Fish size={40} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
                       <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
@@ -602,8 +712,12 @@ export default function IkanHidup() {
                       <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>{rowNumber}</td>
                       <td className={styles.locationCol}>{item.daerah}</td>
                       <td className={styles.commodityCol}>{item.komoditas}</td>
+                      <td className={styles.latinCol}>{item.namaTercetak}</td>
                       <td className={styles.numCol}>
-                        {item.volume.toLocaleString('id-ID')}
+                        {item.volumeKg > 0 ? item.volumeKg.toLocaleString('id-ID') : '-'}
+                      </td>
+                      <td className={styles.numCol}>
+                        {item.volumeEkor > 0 ? item.volumeEkor.toLocaleString('id-ID') : '-'}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span className={styles.freqBadge}>
@@ -619,11 +733,14 @@ export default function IkanHidup() {
             {paginatedData.length > 0 && (
               <tfoot className={styles.tableFooter}>
                 <tr>
-                  <td colSpan={3} style={{ textAlign: 'right', fontWeight: 700 }}>
+                  <td colSpan={4} style={{ textAlign: 'right', fontWeight: 700 }}>
                     TOTAL:
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                    {kpis.totalVolume.toLocaleString('id-ID')} Kg
+                    {kpis.totalVolumeKg.toLocaleString('id-ID')} Kg
+                  </td>
+                  <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                    {kpis.totalVolumeEkor.toLocaleString('id-ID')} Ekor
                   </td>
                   <td style={{ textAlign: 'center', fontWeight: 700 }}>
                     {kpis.totalFrekuensi.toLocaleString('id-ID')}

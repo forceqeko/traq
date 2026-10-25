@@ -313,6 +313,13 @@
 
 .commodityCol {
   color: var(--text-primary);
+  font-weight: 500;
+}
+
+.latinCol {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.8125rem;
 }
 
 .numCol {

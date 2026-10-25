@@ -186,6 +186,8 @@ export default function ChartBuilderModal({
   const initialSortBy = useMemo(() => {
     if (safeConfig.sort_by) return safeConfig.sort_by;
     const yLower = String(safeConfig.y_axis || '').toLowerCase();
+    if (yLower.includes('k.1.1') || yLower.includes('k11')) return 'k11_desc';
+    if (yLower.includes('persen') || yLower.includes('ratio')) return 'percentage_desc';
     if (yLower.includes('vol') || yLower.includes('netto') || yLower.includes('berat')) return 'vol_desc';
     if (yLower.includes('nilai') || yLower.includes('harga') || yLower.includes('rupiah')) return 'val_desc';
     if (yLower.includes('frekuensi') || yLower.includes('sertifikat')) return 'certs_desc';
@@ -390,6 +392,9 @@ export default function ChartBuilderModal({
 
   const availableAggregateMetrics = [
     { id: 'certs', label: 'Frekuensi Sertifikat (Nomor Dokumen - Unique)', desc: 'Total dokumen sertifikat resmi unik (Nomor Dokumen pembebasan)' },
+    { id: 'k11', label: 'Frekuensi No. K.1.1 (Verifikasi Pengajuan - Unique)', desc: 'Total formulir verifikasi pengajuan unik (No. K.1.1)' },
+    { id: 'percentage', label: 'Persentase Sertifikasi (No. Dokumen vs No. K.1.1)', desc: 'Persentase penyelesaian No. Dokumen terhadap No. K.1.1 serta status selisih' },
+    { id: 'diff', label: 'Selisih Sertifikasi (K.1.1 - Nomor Dokumen)', desc: 'Selisih dokumen pengajuan K.1.1 dengan sertifikat resmi terbit' },
     { id: 'rows', label: 'Jumlah Rincian Komoditas (Baris)', desc: 'Total baris data item komoditas' },
     { id: 'volume', label: 'Total Berat/Netto (Kg)', desc: 'Penjumlahan berat terkonversi Kilogram (Netto P8)' },
     { id: 'value', label: 'Total Nilai Komoditas (Rp)', desc: 'Penjumlahan nilai rupiah barang' },
@@ -417,11 +422,24 @@ export default function ChartBuilderModal({
     setAggregateMetrics(next);
 
     // Auto-adjust sortByMetric if the current sort metric was deselected
-    if (!next.includes('certs') && sortByMetric === 'certs_desc') {
-      if (next.includes('volume')) setSortByMetric('vol_desc');
+    if (!next.includes('certs') && sortByMetric.startsWith('certs')) {
+      if (next.includes('k11')) setSortByMetric('k11_desc');
+      else if (next.includes('percentage')) setSortByMetric('percentage_desc');
+      else if (next.includes('volume')) setSortByMetric('vol_desc');
       else if (next.includes('value')) setSortByMetric('val_desc');
       else if (next.includes('rows')) setSortByMetric('rows_desc');
-    } else if (!next.includes('volume') && sortByMetric === 'vol_desc') {
+    } else if (!next.includes('k11') && sortByMetric.startsWith('k11')) {
+      if (next.includes('certs')) setSortByMetric('certs_desc');
+      else if (next.includes('percentage')) setSortByMetric('percentage_desc');
+      else if (next.includes('volume')) setSortByMetric('vol_desc');
+    } else if (!next.includes('percentage') && sortByMetric.startsWith('percentage')) {
+      if (next.includes('certs')) setSortByMetric('certs_desc');
+      else if (next.includes('k11')) setSortByMetric('k11_desc');
+      else if (next.includes('volume')) setSortByMetric('vol_desc');
+    } else if (!next.includes('diff') && sortByMetric.startsWith('diff')) {
+      if (next.includes('percentage')) setSortByMetric('percentage_desc');
+      else if (next.includes('certs')) setSortByMetric('certs_desc');
+    } else if (!next.includes('volume') && sortByMetric.startsWith('vol')) {
       if (next.includes('value')) setSortByMetric('val_desc');
       else if (next.includes('certs')) setSortByMetric('certs_desc');
     }
@@ -930,8 +948,13 @@ export default function ChartBuilderModal({
                             <div className="form-group">
                               <label className="form-label" style={{ fontWeight: 600 }}>Urutan Peringkat</label>
                               <select className="select" value={sortByMetric} onChange={(e) => setSortByMetric(e.target.value)}>
-                                <option value="certs_desc">Sertifikat Terbanyak</option>
-                                <option value="certs_asc">Sertifikat Terendah</option>
+                                <option value="certs_desc">Sertifikat Terbanyak (Nomor Dokumen)</option>
+                                <option value="certs_asc">Sertifikat Terendah (Nomor Dokumen)</option>
+                                <option value="k11_desc">No. K.1.1 Terbanyak (Pengajuan)</option>
+                                <option value="k11_asc">No. K.1.1 Terendah (Pengajuan)</option>
+                                <option value="percentage_desc">Persentase Tertinggi (%)</option>
+                                <option value="percentage_asc">Persentase Terendah (%)</option>
+                                <option value="diff_desc">Selisih Terbesar (K.1.1 - Dokumen)</option>
                                 <option value="vol_desc">Volume / Berat Terbesar</option>
                                 <option value="val_desc">Nilai Rupiah Terbesar</option>
                                 <option value="name_asc">Nama (A - Z)</option>

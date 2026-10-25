@@ -318,3 +318,54 @@ export function getCertificateId(row, fallbackIndex = 0) {
   ).trim();
 }
 
+/**
+ * Ekstraksi Nomor Dokumen resmi sertifikat pembebasan (hasil akhir sertifikasi)
+ * @param {object} row - The row object
+ * @returns {string|null} Cleaned document number or null if missing
+ */
+export function getDocumentId(row) {
+  if (!row) return null;
+  const val =
+    row['Nomor Dokumen'] ??
+    row['No. Dokumen'] ??
+    row['Nomor_Dokumen'] ??
+    row['No Dokumen'] ??
+    row['No Dok'] ??
+    row.Nomor_Dokumen ??
+    row.NomorDokumen ??
+    row['Nomor Sertifikat'] ??
+    row['No. Sertifikat'] ??
+    row['No Sertifikat'] ??
+    null;
+  if (!val) return null;
+  const str = String(val).trim();
+  if (!str || str === '-' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') return null;
+  return str;
+}
+
+/**
+ * Ekstraksi Nomor Formulir Verifikasi Pengajuan K.1.1
+ * @param {object} row - The row object
+ * @returns {string|null} Cleaned No. K.1.1 or null if missing
+ */
+export function getK11Id(row) {
+  if (!row) return null;
+  const val =
+    row['No. K.1.1'] ??
+    row['No K.1.1'] ??
+    row['No.K.1.1'] ??
+    row['No_K11'] ??
+    row['K.1.1'] ??
+    row['No K11'] ??
+    row.No_K11 ??
+    row['No. Aju'] ??
+    row['No Aju'] ??
+    row['No_Aju'] ??
+    null;
+  if (!val) return null;
+  const str = String(val).trim();
+  if (!str || str === '-' || str.toLowerCase() === 'null' || str.toLowerCase() === 'undefined') return null;
+  return str;
+}
+
+

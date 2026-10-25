@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import styles from './charts.module.css';
 import { Search, ChevronLeft, ChevronRight, BarChart3, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { getColumnMappingMap } from '@/lib/services/columnService';
-import { getCertificateId } from '@/lib/data/aggregation';
+import { getCertificateId, getDocumentId, getK11Id } from '@/lib/data/aggregation';
 import { formatMonthToShort, isMonthName, getMonthSortOrder } from '@/lib/data/monthUtils';
 
 export default function DataTableComponent({
@@ -49,6 +49,8 @@ export default function DataTableComponent({
       if (sortBy === 'certs_desc') {
         // If certs is not in visible metrics, fallback to the first active metric
         if (!activeMetrics.includes('certs')) {
+          if (activeMetrics.includes('k11')) return { key: 'k11', dir: 'desc' };
+          if (activeMetrics.includes('percentage')) return { key: 'percentage', dir: 'desc' };
           if (activeMetrics.includes('volume')) return { key: 'volume', dir: 'desc' };
           if (activeMetrics.includes('value')) return { key: 'value', dir: 'desc' };
           if (activeMetrics.includes('rows')) return { key: 'rows', dir: 'desc' };
@@ -56,6 +58,12 @@ export default function DataTableComponent({
         return { key: 'certs', dir: 'desc' };
       }
       if (sortBy === 'certs_asc') return { key: 'certs', dir: 'asc' };
+      if (sortBy === 'k11_desc') return { key: 'k11', dir: 'desc' };
+      if (sortBy === 'k11_asc') return { key: 'k11', dir: 'asc' };
+      if (sortBy === 'percentage_desc') return { key: 'percentage', dir: 'desc' };
+      if (sortBy === 'percentage_asc') return { key: 'percentage', dir: 'asc' };
+      if (sortBy === 'diff_desc') return { key: 'diff', dir: 'desc' };
+      if (sortBy === 'diff_asc') return { key: 'diff', dir: 'asc' };
       if (sortBy === 'vol_desc') return { key: 'volume', dir: 'desc' };
       if (sortBy === 'vol_asc') return { key: 'volume', dir: 'asc' };
       if (sortBy === 'val_desc') return { key: 'value', dir: 'desc' };
@@ -67,6 +75,7 @@ export default function DataTableComponent({
     }
 
     // Default fallback
+    if (activeMetrics.includes('k11')) return { key: 'k11', dir: 'desc' };
     if (activeMetrics.includes('volume')) return { key: 'volume', dir: 'desc' };
     return { key: 'certs', dir: 'desc' };
   }, [userSortKey, userSortDir, sortBy, activeMetrics]);
@@ -90,6 +99,9 @@ export default function DataTableComponent({
         totals: {
           groupName: 'TOTAL KESELURUHAN',
           certs: 0,
+          k11: 0,
+          percentage: 0,
+          diff: 0,
           rows: 0,
           volume: 0,
           value: 0,
@@ -101,11 +113,16 @@ export default function DataTableComponent({
 
     const groupMap = new Map();
     let totalCertsSet = new Set();
+    let totalK11Set = new Set();
     let grandRows = 0;
     let grandVol = 0;
     let grandVal = 0;
 
     const isMonthGroup = String(groupBy || '').toLowerCase().includes('bulan') || String(groupBy || '').toLowerCase().includes('month');
+
+    // Pre-check if dataset contains actual document or K.1.1 fields
+    const hasAnyDoc = data.some((r) => getDocumentId(r.row_data || r));
+    const hasAnyK11 = data.some((r) => getK11Id(r.row_data || r));
 
     data.forEach((r, idx) => {
       const row = r.row_data || r || {};
@@ -115,12 +132,16 @@ export default function DataTableComponent({
         groupKey = formatMonthToShort(groupKey, isMonthGroup);
       }
 
-      const certId = getCertificateId(row, idx);
+      const docId = getDocumentId(row);
+      const k11Id = getK11Id(row);
+      // Determine certId: if real docId exists, use it; if no doc columns exist at all, fallback
+      const certId = hasAnyDoc ? docId : (hasAnyK11 ? null : getCertificateId(row, idx));
 
       const vol = parseNum(row['Netto P8'] ?? row['Netto P1'] ?? row.Netto ?? row['Vol P1'] ?? row.Volume ?? row['Vol Lain'] ?? 0);
       const val = parseNum(row['Harga Barang (Rp)'] ?? row.Nilai_Rupiah ?? row.Harga ?? 0);
 
-      totalCertsSet.add(certId);
+      if (certId) totalCertsSet.add(certId);
+      if (k11Id) totalK11Set.add(k11Id);
       grandRows += 1;
       grandVol += vol;
       grandVal += val;
@@ -129,6 +150,7 @@ export default function DataTableComponent({
         groupMap.set(groupKey, {
           groupName: groupKey,
           certs: new Set(),
+          k11: new Set(),
           rowCount: 0,
           totalVol: 0,
           totalVal: 0,
@@ -136,7 +158,8 @@ export default function DataTableComponent({
       }
 
       const item = groupMap.get(groupKey);
-      item.certs.add(certId);
+      if (certId) item.certs.add(certId);
+      if (k11Id) item.k11.add(k11Id);
       item.rowCount += 1;
       item.totalVol += vol;
       item.totalVal += val;
@@ -144,9 +167,18 @@ export default function DataTableComponent({
 
     let list = Array.from(groupMap.values()).map((item) => {
       const certCount = item.certs.size;
+      const k11Count = item.k11.size;
+      const diff = k11Count - certCount;
+      const percentage = k11Count > 0
+        ? (certCount / k11Count) * 100
+        : (certCount > 0 ? 100 : 0);
+
       return {
         groupName: item.groupName,
         certs: certCount,
+        k11: k11Count,
+        percentage,
+        diff,
         rows: item.rowCount,
         volume: Math.round(item.totalVol),
         value: Math.round(item.totalVal),
@@ -176,14 +208,24 @@ export default function DataTableComponent({
       list = list.slice(0, parseInt(topN, 10));
     }
 
+    const grandCerts = totalCertsSet.size;
+    const grandK11 = totalK11Set.size;
+    const grandDiff = grandK11 - grandCerts;
+    const grandPercentage = grandK11 > 0
+      ? (grandCerts / grandK11) * 100
+      : (grandCerts > 0 ? 100 : 0);
+
     const totals = {
       groupName: 'TOTAL KESELURUHAN',
-      certs: totalCertsSet.size,
+      certs: grandCerts,
+      k11: grandK11,
+      percentage: grandPercentage,
+      diff: grandDiff,
       rows: grandRows,
       volume: Math.round(grandVol),
       value: Math.round(grandVal),
-      avg_volume: totalCertsSet.size > 0 ? Math.round(grandVol / totalCertsSet.size) : 0,
-      avg_value: totalCertsSet.size > 0 ? Math.round(grandVal / totalCertsSet.size) : 0,
+      avg_volume: grandCerts > 0 ? Math.round(grandVol / grandCerts) : 0,
+      avg_value: grandCerts > 0 ? Math.round(grandVal / grandCerts) : 0,
     };
 
     return { rows: list, totals };
@@ -192,13 +234,128 @@ export default function DataTableComponent({
   // 2. Metric Columns configuration for Aggregate Mode with Display Names from Registry
   const volDisplay = getDisplayName('Netto P8') || getDisplayName('Netto P1') || getDisplayName('Vol P1') || getDisplayName('Volume') || 'Berat (Kg)';
   const valDisplay = getDisplayName('Harga Barang (Rp)') || getDisplayName('Nilai_Rupiah') || 'Harga Barang';
-  const certDisplay = getDisplayName('Nomor Dokumen') || getDisplayName('No. Dokumen') || getDisplayName('No. K.1.1') || 'Nomor Dokumen';
+  const certDisplay = getDisplayName('Nomor Dokumen') || 'Nomor Dokumen';
+  const k11Display = getDisplayName('No. K.1.1') || 'No. K.1.1';
 
   const metricDefs = {
     certs: {
       label: `Jumlah (${certDisplay})`,
       sortKey: 'certs',
       format: (v) => Math.round(Number(v || 0)).toLocaleString('id-ID'),
+      align: 'right',
+    },
+    k11: {
+      label: `Jumlah (${k11Display})`,
+      sortKey: 'k11',
+      format: (v) => Math.round(Number(v || 0)).toLocaleString('id-ID'),
+      align: 'right',
+    },
+    percentage: {
+      label: 'Persentase Sertifikasi (%)',
+      sortKey: 'percentage',
+      format: (v, row) => {
+        const kCount = Number(row?.k11 ?? 0);
+        const dCount = Number(row?.certs ?? 0);
+        const diff = row?.diff !== undefined ? Number(row.diff) : (kCount - dCount);
+
+        if (kCount === 0 && dCount === 0) {
+          return <span style={{ color: 'var(--text-muted)' }}>-</span>;
+        }
+        if (kCount === 0 && dCount > 0) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#10B981', fontWeight: 600 }}>
+              <span>100.0%</span>
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  padding: '0.1rem 0.35rem',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  color: '#059669',
+                  fontWeight: 600,
+                }}
+              >
+                Dokumen Saja
+              </span>
+            </span>
+          );
+        }
+
+        const pctVal = Number(v || 0);
+        const pctStr = `${pctVal.toFixed(1)}%`;
+
+        if (diff === 0) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#10B981', fontWeight: 600 }}>
+              <span>{pctStr}</span>
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  padding: '0.1rem 0.35rem',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  color: '#059669',
+                  fontWeight: 600,
+                }}
+              >
+                Sesuai
+              </span>
+            </span>
+          );
+        } else if (diff > 0) {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#D97706', fontWeight: 600 }}>
+              <span>{pctStr}</span>
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  padding: '0.1rem 0.35rem',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  color: '#B45309',
+                  fontWeight: 600,
+                }}
+                title={`Selisih ${diff} pengajuan belum/tidak menjadi sertifikat`}
+              >
+                Selisih: {diff}
+              </span>
+            </span>
+          );
+        } else {
+          return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#2563EB', fontWeight: 600 }}>
+              <span>{pctStr}</span>
+              <span
+                style={{
+                  fontSize: '0.6875rem',
+                  padding: '0.1rem 0.35rem',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  color: '#1D4ED8',
+                  fontWeight: 600,
+                }}
+              >
+                +{Math.abs(diff)}
+              </span>
+            </span>
+          );
+        }
+      },
+      align: 'right',
+    },
+    diff: {
+      label: 'Selisih (K.1.1 - Dokumen)',
+      sortKey: 'diff',
+      format: (v) => {
+        const val = Number(v || 0);
+        if (val === 0) {
+          return <span style={{ color: '#10B981', fontWeight: 600 }}>0 (Sesuai)</span>;
+        } else if (val > 0) {
+          return <span style={{ color: '#D97706', fontWeight: 600 }}>+{val}</span>;
+        } else {
+          return <span style={{ color: '#2563EB', fontWeight: 600 }}>{val}</span>;
+        }
+      },
       align: 'right',
     },
     rows: {
@@ -400,7 +557,7 @@ export default function DataTableComponent({
                               fontFamily: 'Outfit, sans-serif',
                             }}
                           >
-                            {metricDefs[mKey]?.format(row[mKey] ?? 0)}
+                            {metricDefs[mKey]?.format ? metricDefs[mKey].format(row[mKey] ?? 0, row) : (row[mKey] ?? 0)}
                           </td>
                         );
                       })}
@@ -431,7 +588,7 @@ export default function DataTableComponent({
                         fontFamily: 'Outfit, sans-serif',
                       }}
                     >
-                      {metricDefs[mKey]?.format(aggregateResult.totals[mKey] ?? 0)}
+                      {metricDefs[mKey]?.format ? metricDefs[mKey].format(aggregateResult.totals[mKey] ?? 0, aggregateResult.totals) : (aggregateResult.totals[mKey] ?? 0)}
                     </td>
                   ))}
                 </tr>

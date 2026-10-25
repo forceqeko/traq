@@ -5,15 +5,29 @@ const STORAGE_KEY = 'traq_instalasi_iki';
 const IKI_CONFIG_ID = '00000000-0000-0000-0000-000000000181';
 const HOME_DASHBOARD_ID = '8c52d7d3-e85b-4c4a-acb5-7cf2f1539b47';
 
+const DUMMY_IDS = new Set([
+  'iki-1',
+  'iki-2',
+  'iki_samudera_bahari',
+  'iki_laut_lestari',
+  'iki_aquatech',
+]);
+
 function getLocalIki() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      const cleaned = parsed.filter((item) => item && !['iki-1', 'iki-2'].includes(item.id));
+      const cleaned = parsed.filter(
+        (item) => item && !DUMMY_IDS.has(item.id) && !DUMMY_IDS.has(item.nama_perusahaan)
+      );
       if (cleaned.length !== parsed.length) {
-        setLocalIki(cleaned);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+        } catch {
+          // ignore
+        }
       }
       return cleaned;
     }
@@ -25,7 +39,10 @@ function getLocalIki() {
 
 function setLocalIki(list) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list || []));
+    const cleaned = (list || []).filter(
+      (item) => item && !DUMMY_IDS.has(item.id) && !DUMMY_IDS.has(item.nama_perusahaan)
+    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
     notifyIkiChange();
   } catch (err) {
     console.warn('Gagal menyimpan IKI ke localStorage:', err);
@@ -39,11 +56,11 @@ function notifyIkiChange() {
 }
 
 /**
- * Mengambil daftar seluruh IKI terdaftar dari server Supabase
- * Sinkronisasi otomatis ke semua perangkat dan browser.
+ * Mengambil daftar seluruh IKI terdaftar dari Supabase cloud.
+ * Supabase cloud adalah sumber kebenaran (source of truth).
  */
 export async function getIkiList() {
-  // 1. Coba lewat API endpoint serverless / vite middleware
+  // 1. Ambil dari API serverless / vite middleware
   try {
     const res = await fetch('/api/admin/iki', {
       method: 'GET',
@@ -52,46 +69,36 @@ export async function getIkiList() {
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.items)) {
-        // Auto-sync: periksa apakah ada item lokal yang belum ada di remote
-        const localList = getLocalIki();
-        const remoteIds = new Set(json.items.map((x) => x.id));
-        const unSynced = localList.filter((x) => x && x.id && !remoteIds.has(x.id));
-
-        if (unSynced.length > 0) {
-          const merged = [...unSynced, ...json.items];
-          fetch('/api/admin/iki', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'sync_all', items: merged }),
-          }).catch(() => {});
-          setLocalIki(merged);
-          return merged;
-        }
-
-        setLocalIki(json.items);
-        return json.items;
+        const cleaned = json.items.filter(
+          (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+        );
+        setLocalIki(cleaned);
+        return cleaned;
       }
     }
   } catch {
-    // Lanjut ke fallback direct client
+    // Lanjut ke direct Supabase client jika API lokal tidak merespon
   }
 
   // 2. Fallback: baca langsung dari Supabase Client
   try {
     const supabase = createClient();
 
-    // 2a. Coba dari tabel instalasi_iki terlebih dahulu
+    // 2a. Coba dari tabel instalasi_iki jika ada
     const { data: tableData, error: tableErr } = await supabase
       .from('instalasi_iki')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (!tableErr && Array.isArray(tableData) && tableData.length > 0) {
-      setLocalIki(tableData);
-      return tableData;
+      const cleaned = tableData.filter(
+        (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+      );
+      setLocalIki(cleaned);
+      return cleaned;
     }
 
-    // 2b. Coba dari chart_configs (__SYSTEM_APP_STORAGE_INSTALASI_IKI__)
+    // 2b. Coba dari chart_configs
     const { data: configData, error: configErr } = await supabase
       .from('chart_configs')
       .select('config')
@@ -99,8 +106,11 @@ export async function getIkiList() {
       .maybeSingle();
 
     if (!configErr && configData?.config?.items && Array.isArray(configData.config.items)) {
-      setLocalIki(configData.config.items);
-      return configData.config.items;
+      const cleaned = configData.config.items.filter(
+        (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+      );
+      setLocalIki(cleaned);
+      return cleaned;
     }
   } catch (err) {
     console.warn('Gagal membaca IKI langsung dari Supabase:', err?.message);
@@ -110,7 +120,7 @@ export async function getIkiList() {
 }
 
 /**
- * Menyimpan data IKI baru ke Supabase cloud agar muncul di semua perangkat
+ * Menyimpan data IKI baru ke Supabase cloud
  */
 export async function createIki(payload) {
   const newId = `iki_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -148,14 +158,12 @@ export async function createIki(payload) {
   try {
     const supabase = createClient();
 
-    // 2a. Coba simpan ke instalasi_iki jika tabel ada
     try {
       await supabase.from('instalasi_iki').insert([item]);
     } catch {
       // Abaikan jika tabel belum ada
     }
 
-    // 2b. Simpan ke chart_configs
     const currentList = getLocalIki();
     const updatedList = [item, ...currentList.filter((x) => x.id !== item.id)];
 
@@ -272,9 +280,14 @@ export async function updateIki(id, payload) {
 }
 
 /**
- * Menghapus data IKI
+ * Menghapus data IKI dari cloud Supabase dan local cache
  */
 export async function deleteIki(id) {
+  // Update local cache terlebih dahulu agar UI responsif seketika
+  const currentList = getLocalIki();
+  const nextList = currentList.filter((x) => x.id !== id);
+  setLocalIki(nextList);
+
   // 1. Hapus via API Serverless / Vite Dev Middleware
   try {
     const res = await fetch('/api/admin/iki', {
@@ -303,9 +316,6 @@ export async function deleteIki(id) {
       // Abaikan jika tabel belum ada
     }
 
-    const currentList = getLocalIki();
-    const nextList = currentList.filter((x) => x.id !== id);
-
     await supabase
       .from('chart_configs')
       .upsert({
@@ -327,9 +337,6 @@ export async function deleteIki(id) {
     console.warn('Fallback direct Supabase delete:', err.message);
   }
 
-  const currentList = getLocalIki();
-  const nextList = currentList.filter((x) => x.id !== id);
-  setLocalIki(nextList);
   return true;
 }
 

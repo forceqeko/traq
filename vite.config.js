@@ -231,6 +231,13 @@ function adminApiPlugin(env) {
           const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
           const IKI_CONFIG_ID = '00000000-0000-0000-0000-000000000181';
           const HOME_DASHBOARD_ID = '8c52d7d3-e85b-4c4a-acb5-7cf2f1539b47';
+          const DUMMY_IDS = new Set([
+            'iki-1',
+            'iki-2',
+            'iki_samudera_bahari',
+            'iki_laut_lestari',
+            'iki_aquatech',
+          ]);
 
           if (!supabaseUrl || !serviceRoleKey) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -250,8 +257,11 @@ function adminApiPlugin(env) {
                 .order('created_at', { ascending: false });
 
               if (!tableErr && Array.isArray(tableData) && tableData.length > 0) {
+                const cleaned = tableData.filter(
+                  (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+                );
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ success: true, items: tableData }));
+                return res.end(JSON.stringify({ success: true, items: cleaned }));
               }
 
               // 2. Fallback ke chart_configs
@@ -261,9 +271,12 @@ function adminApiPlugin(env) {
                 .eq('id', IKI_CONFIG_ID)
                 .maybeSingle();
 
-              const items = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+              const rawItems = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+              const cleaned = rawItems.filter(
+                (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+              );
               res.writeHead(200, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ success: true, items }));
+              return res.end(JSON.stringify({ success: true, items: cleaned }));
             } catch (err) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ error: err.message || 'Gagal memuat data IKI dari server' }));
@@ -286,9 +299,14 @@ function adminApiPlugin(env) {
                   .maybeSingle();
 
                 let currentItems = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+                currentItems = currentItems.filter(
+                  (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+                );
 
                 if (action === 'sync_all' && Array.isArray(items)) {
-                  currentItems = items;
+                  currentItems = items.filter(
+                    (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+                  );
                 } else if (action === 'upsert' && item) {
                   const idx = currentItems.findIndex((x) => x.id === item.id);
                   if (idx >= 0) {
@@ -327,7 +345,7 @@ function adminApiPlugin(env) {
                   } else if (action === 'delete' && id) {
                     await adminClient.from('instalasi_iki').delete().eq('id', id);
                   } else if (action === 'sync_all' && Array.isArray(items) && items.length > 0) {
-                    await adminClient.from('instalasi_iki').upsert(items, { onConflict: 'id' });
+                    await adminClient.from('instalasi_iki').upsert(currentItems, { onConflict: 'id' });
                   }
                 } catch {
                   // Diabaikan jika tabel belum ada

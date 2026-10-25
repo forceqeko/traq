@@ -3,6 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 const IKI_CONFIG_ID = '00000000-0000-0000-0000-000000000181';
 const HOME_DASHBOARD_ID = '8c52d7d3-e85b-4c4a-acb5-7cf2f1539b47';
 
+const DUMMY_IDS = new Set([
+  'iki-1',
+  'iki-2',
+  'iki_samudera_bahari',
+  'iki_laut_lestari',
+  'iki_aquatech',
+]);
+
 export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -24,7 +32,10 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: false });
 
       if (!tableErr && Array.isArray(tableData) && tableData.length > 0) {
-        return res.status(200).json({ success: true, items: tableData });
+        const cleaned = tableData.filter(
+          (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+        );
+        return res.status(200).json({ success: true, items: cleaned });
       }
 
       // 2. Fallback ke chart_configs
@@ -34,8 +45,11 @@ export default async function handler(req, res) {
         .eq('id', IKI_CONFIG_ID)
         .maybeSingle();
 
-      const items = Array.isArray(configData?.config?.items) ? configData.config.items : [];
-      return res.status(200).json({ success: true, items });
+      const rawItems = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+      const cleaned = rawItems.filter(
+        (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+      );
+      return res.status(200).json({ success: true, items: cleaned });
     } catch (err) {
       return res.status(500).json({ error: err.message || 'Gagal memuat data IKI dari server' });
     }
@@ -45,7 +59,6 @@ export default async function handler(req, res) {
     try {
       const { action, items, item, id } = req.body || {};
 
-      // Ambil data saat ini dari chart_configs
       const { data: configData } = await adminClient
         .from('chart_configs')
         .select('config')
@@ -53,9 +66,14 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       let currentItems = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+      currentItems = currentItems.filter(
+        (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+      );
 
       if (action === 'sync_all' && Array.isArray(items)) {
-        currentItems = items;
+        currentItems = items.filter(
+          (x) => x && !DUMMY_IDS.has(x.id) && !DUMMY_IDS.has(x.nama_perusahaan)
+        );
       } else if (action === 'upsert' && item) {
         const idx = currentItems.findIndex((x) => x.id === item.id);
         if (idx >= 0) {
@@ -87,14 +105,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: upsertErr.message });
       }
 
-      // Sync juga ke instalasi_iki jika tabel tersebut ada
+      // Sync ke instalasi_iki jika ada
       try {
         if (action === 'upsert' && item) {
           await adminClient.from('instalasi_iki').upsert(item, { onConflict: 'id' });
         } else if (action === 'delete' && id) {
           await adminClient.from('instalasi_iki').delete().eq('id', id);
         } else if (action === 'sync_all' && Array.isArray(items) && items.length > 0) {
-          await adminClient.from('instalasi_iki').upsert(items, { onConflict: 'id' });
+          await adminClient.from('instalasi_iki').upsert(currentItems, { onConflict: 'id' });
         }
       } catch {
         // Abaikan jika tabel belum ada

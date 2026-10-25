@@ -14,6 +14,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  Fish,
 } from 'lucide-react';
 
 export default function Sidebar({ collapsed, onToggle }) {
@@ -27,6 +28,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   const [karantinaOpen, setKarantinaOpen] = useState(false);
   const [instalasiOpen, setInstalasiOpen] = useState(false);
   const [profilingOpen, setProfilingOpen] = useState(false);
+  const [ikanHidupOpen, setIkanHidupOpen] = useState(false);
 
   useEffect(() => {
     if (isParentActive('/lalu-lintas') || isParentActive('/lalu_lintas')) {
@@ -37,6 +39,8 @@ export default function Sidebar({ collapsed, onToggle }) {
       setInstalasiOpen(true);
     } else if (isParentActive('/profiling')) {
       setProfilingOpen(true);
+    } else if (isParentActive('/ikan-hidup')) {
+      setIkanHidupOpen(true);
     }
   }, [pathname]);
 
@@ -242,7 +246,55 @@ export default function Sidebar({ collapsed, onToggle }) {
           )}
         </div>
 
-        {/* 6. Anomali Data */}
+        {/* 6. Ikan Hidup (Testing) Menu */}
+        <div>
+          <div
+            className={`${styles.navItem} ${isParentActive('/ikan-hidup') ? styles.active : ''}`}
+            onClick={() => !collapsed && setIkanHidupOpen(!ikanHidupOpen)}
+            title="Ikan Hidup (Testing)"
+          >
+            <Fish className={styles.navIcon} />
+            {!collapsed && (
+              <>
+                <span className={styles.navLabel}>Ikan Hidup</span>
+                <span
+                  style={{
+                    fontSize: '0.625rem',
+                    padding: '0.1rem 0.35rem',
+                    borderRadius: '4px',
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    color: 'var(--primary)',
+                    fontWeight: 600,
+                    marginRight: '0.35rem',
+                  }}
+                >
+                  Testing
+                </span>
+                {ikanHidupOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </>
+            )}
+          </div>
+          {!collapsed && ikanHidupOpen && (
+            <div className={styles.subList}>
+              <Link
+                to="/ikan-hidup?traffic=domestik_masuk"
+                className={`${styles.subItem} ${pathname === '/ikan-hidup' && location.search.includes('traffic=domestik_masuk') ? styles.active : ''}`}
+                title="Domestik Masuk"
+              >
+                Domestik Masuk
+              </Link>
+              <Link
+                to="/ikan-hidup?traffic=domestik_keluar"
+                className={`${styles.subItem} ${pathname === '/ikan-hidup' && (!location.search || location.search.includes('traffic=domestik_keluar')) ? styles.active : ''}`}
+                title="Domestik Keluar"
+              >
+                Domestik Keluar
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* 7. Anomali Data */}
         <Link
           to="/anomali-data"
           className={`${styles.navItem} ${isParentActive('/anomali') ? styles.active : ''}`}

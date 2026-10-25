@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import styles from './Sidebar.module.css';
@@ -21,11 +21,17 @@ export default function Sidebar({ collapsed, onToggle }) {
   const { isAdmin } = useUser();
   const [laluLintasOpen, setLaluLintasOpen] = useState(true);
   const [karantinaOpen, setKarantinaOpen] = useState(true);
-  const [instalasiOpen, setInstalasiOpen] = useState(false);
+  const [instalasiOpen, setInstalasiOpen] = useState(true);
   const [profilingOpen, setProfilingOpen] = useState(true);
 
   const isActive = (path) => pathname === path;
   const isParentActive = (prefix) => pathname.startsWith(prefix);
+
+  useEffect(() => {
+    if (isParentActive('/instalasi')) {
+      setInstalasiOpen(true);
+    }
+  }, [pathname]);
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>

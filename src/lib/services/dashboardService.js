@@ -48,6 +48,7 @@ export async function getDashboardConfigs(pageKey = 'home') {
       if (charts && charts.length > 0) {
         return charts
           .filter(Boolean)
+          .filter((c) => !c.title?.startsWith('__SYSTEM_'))
           .map((c) => ({
             ...c,
             // Ensure chart_type is read from config.chart_type if saved in config fallback

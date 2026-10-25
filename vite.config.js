@@ -225,6 +225,125 @@ function adminApiPlugin(env) {
           return;
         }
 
+        // 5. Handler Data Instalasi Karantina Ikan (IKI)
+        if (req.url === '/api/admin/iki') {
+          const supabaseUrl = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL;
+          const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+          const IKI_CONFIG_ID = '00000000-0000-0000-0000-000000000181';
+          const HOME_DASHBOARD_ID = '8c52d7d3-e85b-4c4a-acb5-7cf2f1539b47';
+
+          if (!supabaseUrl || !serviceRoleKey) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Kredensial server Supabase belum dikonfigurasi' }));
+          }
+
+          const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          });
+
+          if (req.method === 'GET') {
+            try {
+              // 1. Cek tabel instalasi_iki terlebih dahulu
+              const { data: tableData, error: tableErr } = await adminClient
+                .from('instalasi_iki')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+              if (!tableErr && Array.isArray(tableData) && tableData.length > 0) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, items: tableData }));
+              }
+
+              // 2. Fallback ke chart_configs
+              const { data: configData } = await adminClient
+                .from('chart_configs')
+                .select('config')
+                .eq('id', IKI_CONFIG_ID)
+                .maybeSingle();
+
+              const items = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, items }));
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ error: err.message || 'Gagal memuat data IKI dari server' }));
+            }
+          }
+
+          if (req.method === 'POST') {
+            let body = '';
+            req.on('data', (chunk) => {
+              body += chunk;
+            });
+            req.on('end', async () => {
+              try {
+                const { action, items, item, id } = JSON.parse(body || '{}');
+
+                const { data: configData } = await adminClient
+                  .from('chart_configs')
+                  .select('config')
+                  .eq('id', IKI_CONFIG_ID)
+                  .maybeSingle();
+
+                let currentItems = Array.isArray(configData?.config?.items) ? configData.config.items : [];
+
+                if (action === 'sync_all' && Array.isArray(items)) {
+                  currentItems = items;
+                } else if (action === 'upsert' && item) {
+                  const idx = currentItems.findIndex((x) => x.id === item.id);
+                  if (idx >= 0) {
+                    currentItems[idx] = { ...currentItems[idx], ...item, updated_at: new Date().toISOString() };
+                  } else {
+                    currentItems = [{ ...item, updated_at: new Date().toISOString() }, ...currentItems];
+                  }
+                } else if (action === 'delete' && id) {
+                  currentItems = currentItems.filter((x) => x.id !== id);
+                }
+
+                const { error: upsertErr } = await adminClient
+                  .from('chart_configs')
+                  .upsert({
+                    id: IKI_CONFIG_ID,
+                    dashboard_id: HOME_DASHBOARD_ID,
+                    title: '__SYSTEM_APP_STORAGE_INSTALASI_IKI__',
+                    chart_type: 'data_table',
+                    width: 'full',
+                    sort_order: 99999,
+                    config: {
+                      items: currentItems,
+                      updated_at: new Date().toISOString(),
+                    },
+                  });
+
+                if (upsertErr) {
+                  res.writeHead(400, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({ error: upsertErr.message }));
+                }
+
+                // Sync ke instalasi_iki jika ada
+                try {
+                  if (action === 'upsert' && item) {
+                    await adminClient.from('instalasi_iki').upsert(item, { onConflict: 'id' });
+                  } else if (action === 'delete' && id) {
+                    await adminClient.from('instalasi_iki').delete().eq('id', id);
+                  } else if (action === 'sync_all' && Array.isArray(items) && items.length > 0) {
+                    await adminClient.from('instalasi_iki').upsert(items, { onConflict: 'id' });
+                  }
+                } catch {
+                  // Diabaikan jika tabel belum ada
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, items: currentItems }));
+              } catch (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: err.message || 'Gagal menyimpan data IKI ke server' }));
+              }
+            });
+            return;
+          }
+        }
+
         next();
       });
     },

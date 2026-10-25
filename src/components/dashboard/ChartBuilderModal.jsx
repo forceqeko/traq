@@ -186,6 +186,7 @@ export default function ChartBuilderModal({
   const initialSortBy = useMemo(() => {
     if (safeConfig.sort_by) return safeConfig.sort_by;
     const yLower = String(safeConfig.y_axis || '').toLowerCase();
+    if (yLower.includes('hidup')) return 'ikan_hidup_desc';
     if (yLower.includes('aju')) return 'no_aju_desc';
     if (yLower.includes('k.1.1') || yLower.includes('k11')) return 'k11_desc';
     if (yLower.includes('persen') || yLower.includes('ratio')) return 'percentage_desc';
@@ -394,10 +395,11 @@ export default function ChartBuilderModal({
   const availableAggregateMetrics = [
     { id: 'certs', label: 'Frekuensi Sertifikat (Nomor Dokumen - Unique)', desc: 'Total dokumen sertifikat resmi unik (Nomor Dokumen pembebasan)' },
     { id: 'k11', label: 'Frekuensi No. K.1.1 (Verifikasi Pengajuan - Unique)', desc: 'Total formulir verifikasi pengajuan unik (No. K.1.1)' },
-    { id: 'percentage', label: 'Persentase Sertifikasi (No. Dokumen vs No. K.1.1)', desc: 'Persentase penyelesaian No. Dokumen terhadap No. K.1.1 serta status selisih' },
-    { id: 'diff', label: 'Selisih Sertifikasi (K.1.1 - Nomor Dokumen)', desc: 'Selisih dokumen pengajuan K.1.1 dengan sertifikat resmi terbit' },
     { id: 'no_aju', label: 'Frekuensi No. Aju (Permohonan - Unique)', desc: 'Total nomor permohonan pengajuan unik (No. Aju)' },
+    { id: 'ikan_hidup', label: 'Klasifikasi Ikan Hidup (Header: Klasifikasi)', desc: 'Total komoditas berkategori Ikan Hidup pada header Klasifikasi' },
+    { id: 'percentage', label: 'Persentase Sertifikasi (No. Dokumen vs No. K.1.1)', desc: 'Persentase penyelesaian No. Dokumen terhadap No. K.1.1 serta status selisih' },
     { id: 'percentage_aju', label: 'Persentase Realisasi (No. Dokumen vs No. Aju)', desc: 'Persentase penyelesaian No. Dokumen terhadap No. Aju serta status selisih' },
+    { id: 'diff', label: 'Selisih Sertifikasi (K.1.1 - Nomor Dokumen)', desc: 'Selisih dokumen pengajuan K.1.1 dengan sertifikat resmi terbit' },
     { id: 'diff_aju', label: 'Selisih Permohonan (No. Aju - Nomor Dokumen)', desc: 'Selisih permohonan No. Aju dengan sertifikat resmi terbit' },
     { id: 'rows', label: 'Jumlah Rincian Komoditas (Baris)', desc: 'Total baris data item komoditas' },
     { id: 'volume', label: 'Total Berat/Netto (Kg)', desc: 'Penjumlahan berat terkonversi Kilogram (Netto P8)' },
@@ -429,6 +431,7 @@ export default function ChartBuilderModal({
     if (!next.includes('certs') && sortByMetric.startsWith('certs')) {
       if (next.includes('k11')) setSortByMetric('k11_desc');
       else if (next.includes('no_aju')) setSortByMetric('no_aju_desc');
+      else if (next.includes('ikan_hidup')) setSortByMetric('ikan_hidup_desc');
       else if (next.includes('percentage')) setSortByMetric('percentage_desc');
       else if (next.includes('percentage_aju')) setSortByMetric('percentage_aju_desc');
       else if (next.includes('volume')) setSortByMetric('vol_desc');
@@ -443,6 +446,10 @@ export default function ChartBuilderModal({
       if (next.includes('certs')) setSortByMetric('certs_desc');
       else if (next.includes('k11')) setSortByMetric('k11_desc');
       else if (next.includes('percentage_aju')) setSortByMetric('percentage_aju_desc');
+      else if (next.includes('volume')) setSortByMetric('vol_desc');
+    } else if (!next.includes('ikan_hidup') && sortByMetric.startsWith('ikan_hidup')) {
+      if (next.includes('certs')) setSortByMetric('certs_desc');
+      else if (next.includes('rows')) setSortByMetric('rows_desc');
       else if (next.includes('volume')) setSortByMetric('vol_desc');
     } else if (!next.includes('percentage') && sortByMetric.startsWith('percentage') && !sortByMetric.includes('aju')) {
       if (next.includes('certs')) setSortByMetric('certs_desc');
@@ -973,6 +980,8 @@ export default function ChartBuilderModal({
                                 <option value="k11_asc">No. K.1.1 Terendah (Verifikasi)</option>
                                 <option value="no_aju_desc">No. Aju Terbanyak (Permohonan)</option>
                                 <option value="no_aju_asc">No. Aju Terendah (Permohonan)</option>
+                                <option value="ikan_hidup_desc">Ikan Hidup Terbanyak (Klasifikasi)</option>
+                                <option value="ikan_hidup_asc">Ikan Hidup Terendah (Klasifikasi)</option>
                                 <option value="percentage_desc">Persentase Tertinggi vs K.1.1 (%)</option>
                                 <option value="percentage_asc">Persentase Terendah vs K.1.1 (%)</option>
                                 <option value="percentage_aju_desc">Persentase Tertinggi vs No. Aju (%)</option>

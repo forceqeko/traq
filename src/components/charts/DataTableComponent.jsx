@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import styles from './charts.module.css';
 import { Search, ChevronLeft, ChevronRight, BarChart3, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { getColumnMappingMap } from '@/lib/services/columnService';
-import { getCertificateId, getDocumentId, getK11Id, getAjuId } from '@/lib/data/aggregation';
+import { getCertificateId, getDocumentId, getK11Id, getAjuId, isIkanHidup } from '@/lib/data/aggregation';
 import { formatMonthToShort, isMonthName, getMonthSortOrder } from '@/lib/data/monthUtils';
 
 export default function DataTableComponent({
@@ -51,6 +51,7 @@ export default function DataTableComponent({
         if (!activeMetrics.includes('certs')) {
           if (activeMetrics.includes('k11')) return { key: 'k11', dir: 'desc' };
           if (activeMetrics.includes('no_aju')) return { key: 'no_aju', dir: 'desc' };
+          if (activeMetrics.includes('ikan_hidup')) return { key: 'ikan_hidup', dir: 'desc' };
           if (activeMetrics.includes('percentage')) return { key: 'percentage', dir: 'desc' };
           if (activeMetrics.includes('percentage_aju')) return { key: 'percentage_aju', dir: 'desc' };
           if (activeMetrics.includes('volume')) return { key: 'volume', dir: 'desc' };
@@ -64,6 +65,8 @@ export default function DataTableComponent({
       if (sortBy === 'k11_asc') return { key: 'k11', dir: 'asc' };
       if (sortBy === 'no_aju_desc') return { key: 'no_aju', dir: 'desc' };
       if (sortBy === 'no_aju_asc') return { key: 'no_aju', dir: 'asc' };
+      if (sortBy === 'ikan_hidup_desc') return { key: 'ikan_hidup', dir: 'desc' };
+      if (sortBy === 'ikan_hidup_asc') return { key: 'ikan_hidup', dir: 'asc' };
       if (sortBy === 'percentage_desc') return { key: 'percentage', dir: 'desc' };
       if (sortBy === 'percentage_asc') return { key: 'percentage', dir: 'asc' };
       if (sortBy === 'percentage_aju_desc') return { key: 'percentage_aju', dir: 'desc' };
@@ -85,6 +88,7 @@ export default function DataTableComponent({
     // Default fallback
     if (activeMetrics.includes('k11')) return { key: 'k11', dir: 'desc' };
     if (activeMetrics.includes('no_aju')) return { key: 'no_aju', dir: 'desc' };
+    if (activeMetrics.includes('ikan_hidup')) return { key: 'ikan_hidup', dir: 'desc' };
     if (activeMetrics.includes('volume')) return { key: 'volume', dir: 'desc' };
     return { key: 'certs', dir: 'desc' };
   }, [userSortKey, userSortDir, sortBy, activeMetrics]);
@@ -114,6 +118,7 @@ export default function DataTableComponent({
           no_aju: 0,
           percentage_aju: 0,
           diff_aju: 0,
+          ikan_hidup: 0,
           rows: 0,
           volume: 0,
           value: 0,
@@ -127,6 +132,7 @@ export default function DataTableComponent({
     let totalCertsSet = new Set();
     let totalK11Set = new Set();
     let totalAjuSet = new Set();
+    let grandIkanHidup = 0;
     let grandRows = 0;
     let grandVol = 0;
     let grandVal = 0;
@@ -149,6 +155,7 @@ export default function DataTableComponent({
       const docId = getDocumentId(row);
       const k11Id = getK11Id(row);
       const ajuId = getAjuId(row);
+      const isHidup = isIkanHidup(row);
       // Determine certId: if real docId exists, use it; if no doc columns exist at all, fallback
       const certId = hasAnyDoc ? docId : (hasAnyK11 || hasAnyAju ? null : getCertificateId(row, idx));
 
@@ -158,6 +165,7 @@ export default function DataTableComponent({
       if (certId) totalCertsSet.add(certId);
       if (k11Id) totalK11Set.add(k11Id);
       if (ajuId) totalAjuSet.add(ajuId);
+      if (isHidup) grandIkanHidup += 1;
       grandRows += 1;
       grandVol += vol;
       grandVal += val;
@@ -168,6 +176,7 @@ export default function DataTableComponent({
           certs: new Set(),
           k11: new Set(),
           aju: new Set(),
+          ikanHidupCount: 0,
           rowCount: 0,
           totalVol: 0,
           totalVal: 0,
@@ -178,6 +187,7 @@ export default function DataTableComponent({
       if (certId) item.certs.add(certId);
       if (k11Id) item.k11.add(k11Id);
       if (ajuId) item.aju.add(ajuId);
+      if (isHidup) item.ikanHidupCount += 1;
       item.rowCount += 1;
       item.totalVol += vol;
       item.totalVal += val;
@@ -207,6 +217,7 @@ export default function DataTableComponent({
         no_aju: ajuCount,
         percentage_aju: percentageAju,
         diff_aju: diffAju,
+        ikan_hidup: item.ikanHidupCount,
         rows: item.rowCount,
         volume: Math.round(item.totalVol),
         value: Math.round(item.totalVal),
@@ -259,6 +270,7 @@ export default function DataTableComponent({
       no_aju: grandAju,
       percentage_aju: grandPercentageAju,
       diff_aju: grandDiffAju,
+      ikan_hidup: grandIkanHidup,
       rows: grandRows,
       volume: Math.round(grandVol),
       value: Math.round(grandVal),
@@ -275,6 +287,7 @@ export default function DataTableComponent({
   const certDisplay = getDisplayName('Nomor Dokumen') || 'Nomor Dokumen';
   const k11Display = getDisplayName('No. K.1.1') || 'No. K.1.1';
   const ajuDisplay = getDisplayName('No. Aju') || getDisplayName('No Aju') || 'No. Aju';
+  const klasifikasiDisplay = getDisplayName('Klasifikasi') || 'Klasifikasi';
 
   const metricDefs = {
     certs: {
@@ -293,6 +306,19 @@ export default function DataTableComponent({
       label: `Jumlah (${ajuDisplay})`,
       sortKey: 'no_aju',
       format: (v) => Math.round(Number(v || 0)).toLocaleString('id-ID'),
+      align: 'right',
+    },
+    ikan_hidup: {
+      label: 'Klasifikasi Ikan Hidup',
+      sortKey: 'ikan_hidup',
+      format: (v) => {
+        const num = Number(v || 0);
+        return (
+          <span style={{ fontWeight: num > 0 ? 600 : 400, color: num > 0 ? 'var(--primary)' : 'var(--text-muted)' }}>
+            {Math.round(num).toLocaleString('id-ID')}
+          </span>
+        );
+      },
       align: 'right',
     },
     percentage_aju: {

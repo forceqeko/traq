@@ -392,4 +392,41 @@ export function getAjuId(row) {
   return str;
 }
 
+/**
+ * Ekstraksi nilai header Klasifikasi komoditas
+ * @param {object} row - The row object
+ * @returns {string} Cleaned classification name
+ */
+export function getKlasifikasi(row) {
+  if (!row) return '';
+  return String(
+    row['Klasifikasi'] ??
+    row['Klasifikasi Komoditas'] ??
+    row['Klasifikasi_Komoditas'] ??
+    row.Klasifikasi ??
+    row.klasifikasi ??
+    ''
+  ).trim();
+}
+
+/**
+ * Cek apakah baris komoditas memiliki header Klasifikasi bernilai "Ikan Hidup"
+ * @param {object} row - The row object
+ * @returns {boolean} True if classification is Ikan Hidup
+ */
+export function isIkanHidup(row) {
+  if (!row) return false;
+  const raw = getKlasifikasi(row);
+  const lower = raw.toLowerCase();
+  if (lower.includes('ikan hidup')) return true;
+  if (lower === 'hidup' || lower.startsWith('hidup') || lower.includes('ikan hias')) {
+    const commType = String(row._commodity_type || row.Komoditas || row.Jenis_Komoditas || '').toLowerCase();
+    if (!commType.includes('hewan') && !commType.includes('tumbuhan')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 

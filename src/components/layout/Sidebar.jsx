@@ -290,6 +290,13 @@ export default function Sidebar({ collapsed, onToggle }) {
               >
                 Domestik Keluar
               </Link>
+              <Link
+                to="/ikan-hidup?traffic=ekspor"
+                className={`${styles.subItem} ${pathname === '/ikan-hidup' && location.search.includes('traffic=ekspor') ? styles.active : ''}`}
+                title="Ekspor"
+              >
+                Ekspor
+              </Link>
             </div>
           )}
         </div>

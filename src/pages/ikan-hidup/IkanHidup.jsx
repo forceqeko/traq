@@ -21,6 +21,7 @@ import {
   RefreshCw,
   AlertCircle,
   Hash,
+  Globe,
 } from 'lucide-react';
 
 /**
@@ -58,6 +59,24 @@ function resolveDaerahAsal(row) {
     row['Provinsi Asal'] ||
     row['Asal'] ||
     row['Pelabuhan Asal'] ||
+    '-';
+  const cleaned = String(val).trim();
+  return cleaned && cleaned !== 'null' && cleaned !== 'undefined' ? cleaned : '-';
+}
+
+/**
+ * Resolusi Negara Tujuan (untuk Ekspor)
+ */
+function resolveNegaraTujuan(row) {
+  if (!row) return '-';
+  const val =
+    row['Negara Tujuan'] ||
+    row['Negara_Tujuan'] ||
+    row['Negara_tujuan'] ||
+    row['Daerah Tujuan'] ||
+    row['Daerah_Tujuan'] ||
+    row['Pelabuhan Tujuan'] ||
+    row['Tujuan'] ||
     '-';
   const cleaned = String(val).trim();
   return cleaned && cleaned !== 'null' && cleaned !== 'undefined' ? cleaned : '-';
@@ -194,11 +213,13 @@ export default function IkanHidup() {
   const periodFilter = usePeriodFilter();
   const { formatPeriodLabel } = periodFilter;
 
-  // Dropdown status: 'domestik_keluar' (Dokel) vs 'domestik_masuk' (Domas)
-  const initialTraffic = searchParams.get('traffic') || 'domestik_keluar';
-  const [trafficType, setTrafficType] = useState(
-    initialTraffic === 'domestik_masuk' ? 'domestik_masuk' : 'domestik_keluar'
-  );
+  // Dropdown status: 'domestik_keluar' (Dokel), 'domestik_masuk' (Domas), atau 'ekspor' (Ekspor)
+  const initialParam = searchParams.get('traffic') || 'domestik_keluar';
+  const initialTraffic = ['domestik_keluar', 'domestik_masuk', 'ekspor'].includes(initialParam)
+    ? initialParam
+    : 'domestik_keluar';
+
+  const [trafficType, setTrafficType] = useState(initialTraffic);
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -212,7 +233,16 @@ export default function IkanHidup() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Sinkronkan trafficType dengan URL query parameter
+  // Sinkronkan trafficType jika query param URL berubah (misal klik dari sidebar)
+  useEffect(() => {
+    const param = searchParams.get('traffic');
+    if (param && ['domestik_keluar', 'domestik_masuk', 'ekspor'].includes(param)) {
+      setTrafficType(param);
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
+
+  // Sinkronkan trafficType dengan URL query parameter saat dropdown berubah
   const handleTrafficChange = (newTraffic) => {
     setTrafficType(newTraffic);
     setSearchParams({ traffic: newTraffic });
@@ -255,9 +285,27 @@ export default function IkanHidup() {
   ]);
 
   const isDokel = trafficType === 'domestik_keluar';
-  const daerahHeaderLabel = isDokel ? 'Daerah Tujuan' : 'Daerah Asal';
+  const isDomas = trafficType === 'domestik_masuk';
+  const isEkspor = trafficType === 'ekspor';
 
-  // Filter baris sesuai lalu lintas (Dokel vs Domas) & klasifikasi Ikan Hidup
+  let daerahHeaderLabel = 'Daerah Tujuan';
+  let kpiLocationLabel = 'DAERAH TUJUAN';
+  let kpiLocationSub = 'Kota/Kabupaten tujuan';
+  let trafficName = 'Domestik Keluar';
+
+  if (isDomas) {
+    daerahHeaderLabel = 'Daerah Asal';
+    kpiLocationLabel = 'DAERAH ASAL';
+    kpiLocationSub = 'Kota/Kabupaten asal';
+    trafficName = 'Domestik Masuk';
+  } else if (isEkspor) {
+    daerahHeaderLabel = 'Negara Tujuan';
+    kpiLocationLabel = 'NEGARA TUJUAN';
+    kpiLocationSub = 'Negara tujuan ekspor';
+    trafficName = 'Ekspor';
+  }
+
+  // Filter baris sesuai lalu lintas (Dokel vs Domas vs Ekspor) & klasifikasi Ikan Hidup
   const relevantRows = useMemo(() => {
     if (!rawRecords || rawRecords.length === 0) return [];
 
@@ -268,9 +316,12 @@ export default function IkanHidup() {
       if (isDokel) {
         const matchesDokel = traffic === 'domestik_keluar' || traffic.includes('keluar');
         if (!matchesDokel) return false;
-      } else {
+      } else if (isDomas) {
         const matchesDomas = traffic === 'domestik_masuk' || traffic.includes('masuk');
         if (!matchesDomas) return false;
+      } else if (isEkspor) {
+        const matchesEkspor = traffic === 'ekspor' || traffic.includes('ekspor');
+        if (!matchesEkspor) return false;
       }
 
       // Filter Ikan Hidup (jika opsi aktif)
@@ -280,14 +331,22 @@ export default function IkanHidup() {
 
       return true;
     });
-  }, [rawRecords, isDokel, onlyIkanHidupFilter]);
+  }, [rawRecords, isDokel, isDomas, isEkspor, onlyIkanHidupFilter]);
 
-  // Agregasi grup berdasarkan (Daerah, Komoditas, Nama Tercetak)
+  // Agregasi grup berdasarkan (Daerah/Negara, Komoditas, Nama Tercetak)
   const aggregatedData = useMemo(() => {
     const groupMap = new Map();
 
     relevantRows.forEach((row, idx) => {
-      const daerah = isDokel ? resolveDaerahTujuan(row) : resolveDaerahAsal(row);
+      let daerah = '-';
+      if (isDokel) {
+        daerah = resolveDaerahTujuan(row);
+      } else if (isDomas) {
+        daerah = resolveDaerahAsal(row);
+      } else if (isEkspor) {
+        daerah = resolveNegaraTujuan(row);
+      }
+
       const komoditas = resolveNamaKomoditas(row);
       const namaTercetak = resolveNamaTercetak(row);
       const key = `${daerah}___${komoditas}___${namaTercetak}`;
@@ -325,7 +384,7 @@ export default function IkanHidup() {
       volumeEkor: Math.round(item.volumeEkor * 100) / 100,
       frekuensi: item.certs.size || 1,
     }));
-  }, [relevantRows, isDokel]);
+  }, [relevantRows, isDokel, isDomas, isEkspor]);
 
   // Hitung ringkasan KPI
   const kpis = useMemo(() => {
@@ -432,7 +491,7 @@ export default function IkanHidup() {
             {loading && <RefreshCw size={15} className="spin" style={{ color: 'var(--primary)' }} />}
           </div>
           <p className={styles.headerSubtitle}>
-            Tabel rekapitulasi data lalu lintas Ikan Hidup ({isDokel ? 'Domestik Keluar' : 'Domestik Masuk'}) berdasarkan master data.
+            Tabel rekapitulasi data lalu lintas Ikan Hidup ({trafficName}) berdasarkan master data.
           </p>
         </div>
 
@@ -516,18 +575,18 @@ export default function IkanHidup() {
           </div>
         </div>
 
-        {/* KPI 5: Total Daerah */}
+        {/* KPI 5: Total Daerah / Negara */}
         <div className={styles.kpiCard}>
           <div
             className={styles.kpiIconWrapper}
             style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#8B5CF6' }}
           >
-            <MapPin size={20} />
+            {isEkspor ? <Globe size={20} /> : <MapPin size={20} />}
           </div>
           <div className={styles.kpiInfo}>
-            <span className={styles.kpiLabel}>{isDokel ? 'DAERAH TUJUAN' : 'DAERAH ASAL'}</span>
+            <span className={styles.kpiLabel}>{kpiLocationLabel}</span>
             <span className={styles.kpiValue}>{kpis.totalDaerah.toLocaleString('id-ID')}</span>
-            <span className={styles.kpiSub}>{isDokel ? 'Kota/Kabupaten tujuan' : 'Kota/Kabupaten asal'}</span>
+            <span className={styles.kpiSub}>{kpiLocationSub}</span>
           </div>
         </div>
       </div>
@@ -536,17 +595,18 @@ export default function IkanHidup() {
       <div className={styles.toolbarCard}>
         <div className={styles.toolbar}>
           <div className={styles.toolbarLeft}>
-            {/* List Dropdown Domestik Masuk & Domestik Keluar */}
+            {/* List Dropdown Domestik Masuk, Domestik Keluar, dan Ekspor */}
             <div className={styles.dropdownControl}>
               <span className={styles.dropdownLabel}>Arah Lalu Lintas:</span>
               <select
                 className={styles.trafficSelect}
                 value={trafficType}
                 onChange={(e) => handleTrafficChange(e.target.value)}
-                aria-label="Pilih Arus Lalu Lintas Domestik"
+                aria-label="Pilih Arus Lalu Lintas"
               >
                 <option value="domestik_keluar">Domestik Keluar (Dokel)</option>
                 <option value="domestik_masuk">Domestik Masuk (Domas)</option>
+                <option value="ekspor">Ekspor</option>
               </select>
             </div>
 

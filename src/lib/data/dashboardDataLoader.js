@@ -340,10 +340,61 @@ export function resolveSatpelColumn(row) {
 }
 
 /**
- * Resolves the Pospel (Pos Pelayanan / Tempat Pelayanan) name for a data record based on its traffic direction.
+ * Pemetaan resmi kode unik No. K.1.1 ke Pos Pelayanan (Pospel)
+ */
+export const POSPEL_MAP = {
+  '7101.0': 'Pospel Bandara Sam Ratulangi',
+  '7101.1': 'Pospel Pelabuhan Manado',
+  '7102.0': 'Pospel Pelabuhan Bitung',
+  '7103.0': 'Pospel Pelabuhan Tahuna',
+  '7103.1': 'Pospel Pelabuhan Melonguane',
+  '7103.2': 'Pospel Pelabuhan Ulu Siau',
+};
+
+/**
+ * Ekstraksi kode unik Pospel dari No. K.1.1
+ */
+export function getK11PospelCode(row) {
+  if (!row) return null;
+  const data = row.row_data || row;
+  const k11 = String(
+    data['No. K.1.1'] ??
+    data['No K.1.1'] ??
+    data['No.K.1.1'] ??
+    data['No_K11'] ??
+    data['K.1.1'] ??
+    data['No K11'] ??
+    row['No. K.1.1'] ??
+    row['No K.1.1'] ??
+    row['No.K.1.1'] ??
+    ''
+  ).trim();
+
+  if (!k11) return null;
+
+  for (const code of Object.keys(POSPEL_MAP)) {
+    if (k11.includes(code)) {
+      return code;
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolves the Pospel (Pos Pelayanan / Tempat Pelayanan) name for a data record.
+ * Prioritas Utama: Kode unik pada No. K.1.1 (7101.0, 7101.1, 7102.0, 7103.0, 7103.1, 7103.2).
+ * Fallback: Berbasis arah lalu lintas dan kolom pelabuhan/tempat periksa.
  */
 export function resolvePospelColumn(row) {
   if (!row) return '';
+
+  // 1. Prioritas Utama: Ekstraksi dari kode unik No. K.1.1
+  const code = getK11PospelCode(row);
+  if (code && POSPEL_MAP[code]) {
+    return POSPEL_MAP[code];
+  }
+
+  // 2. Fallback: Ekstraksi berbasis pelabuhan/tempat periksa
   const data = row.row_data || row;
   const traffic = String(row._traffic_type || data.Arah_Lalu_Lintas || data.traffic_type || '').toLowerCase();
 
@@ -377,7 +428,7 @@ export async function getDistinctPospels(satpelName) {
 
     records.forEach((r) => {
       const rowSatpel = resolveSatpelColumn(r).toLowerCase();
-      if (rowSatpel === targetSatpel) {
+      if (rowSatpel === targetSatpel || rowSatpel.includes(targetSatpel) || targetSatpel.includes(rowSatpel)) {
         const pVal = resolvePospelColumn(r);
         if (pVal && pVal !== '-' && pVal.toLowerCase() !== 'null' && pVal.toLowerCase() !== 'undefined') {
           pospelSet.add(pVal);
@@ -549,7 +600,7 @@ export async function loadPageDashboardData(pageKey = 'home', periodFilter = {})
       }
       domainRecords.forEach((r) => {
         const rowSatpel = resolveSatpelColumn(r).toLowerCase();
-        if (rowSatpel === targetSatpel) {
+        if (rowSatpel === targetSatpel || rowSatpel.includes(targetSatpel) || targetSatpel.includes(rowSatpel)) {
           const pVal = resolvePospelColumn(r);
           if (pVal && pVal !== '-' && pVal.toLowerCase() !== 'null' && pVal.toLowerCase() !== 'undefined') {
             pospelSet.add(pVal);

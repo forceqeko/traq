@@ -15,6 +15,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Fish,
+  Receipt,
 } from 'lucide-react';
 
 export default function Sidebar({ collapsed, onToggle }) {
@@ -309,6 +310,16 @@ export default function Sidebar({ collapsed, onToggle }) {
         >
           <AlertTriangle className={styles.navIcon} />
           {!collapsed && <span className={styles.navLabel}>Anomali Data</span>}
+        </Link>
+
+        {/* 8. PNBP */}
+        <Link
+          to="/pnbp"
+          className={`${styles.navItem} ${isParentActive('/pnbp') ? styles.active : ''}`}
+          title="PNBP"
+        >
+          <Receipt className={styles.navIcon} />
+          {!collapsed && <span className={styles.navLabel}>PNBP</span>}
         </Link>
 
         {/* 7. Pengaturan */}

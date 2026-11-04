@@ -28,6 +28,7 @@ import ProfilingPenggunaJasa from '@/pages/profiling/ProfilingPenggunaJasa';
 import PengaturanIki from '@/pages/pengaturan/PengaturanIki';
 import AnomaliData from '@/pages/anomali/AnomaliData';
 import IkanHidup from '@/pages/ikan-hidup/IkanHidup';
+import Pnbp from '@/pages/pnbp/Pnbp';
 
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 
@@ -86,6 +87,9 @@ export default function App() {
                   {/* Anomali Data */}
                   <Route path="/anomali-data" element={<AnomaliData />} />
                   <Route path="/anomali" element={<AnomaliData />} />
+
+                  {/* PNBP */}
+                  <Route path="/pnbp" element={<Pnbp />} />
 
                   {/* Testing: Ikan Hidup */}
                   <Route path="/ikan-hidup" element={<IkanHidup />} />

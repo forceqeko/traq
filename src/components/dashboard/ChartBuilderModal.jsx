@@ -366,16 +366,12 @@ export default function ChartBuilderModal({
 
   const allXOptions = [...standardXColumns, ...dynamicXColumns];
 
-  // Raw Table: include ALL master data columns (text, numeric, currency, date) without excluding numbers
+  // Raw Table: include ALL master data headers exactly from the Master Data (63 columns)
   const allMasterTableColumns = useMemo(() => {
-    const standardKeys = new Set(standardXColumns.map((c) => (c.key || '').toLowerCase()));
-    const additionalCols = (columns || [])
-      .filter((c) => c && c.column_name && !standardKeys.has((c.column_name || '').toLowerCase()))
-      .map((c) => ({
-        key: c.column_name,
-        label: c.display_name || c.column_name,
-      }));
-    return [...standardXColumns, ...additionalCols];
+    return (columns || []).map((c) => ({
+      key: c.column_name,
+      label: c.column_name,
+    }));
   }, [columns]);
 
   const standardYColumns = [

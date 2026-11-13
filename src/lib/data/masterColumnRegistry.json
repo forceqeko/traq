@@ -1,7 +1,7 @@
 [
   {
     "column_name": "Harga Barang (Rp)",
-    "display_name": "Harga Barang",
+    "display_name": "Harga Barang (Rp)",
     "data_type": "currency",
     "is_primary": true
   },
@@ -13,7 +13,7 @@
   },
   {
     "column_name": "No. K.1.1",
-    "display_name": "No.K.1.1",
+    "display_name": "No. K.1.1",
     "data_type": "text",
     "is_primary": true
   },
@@ -217,7 +217,7 @@
   },
   {
     "column_name": "Netto P8",
-    "display_name": "Volume",
+    "display_name": "Netto P8",
     "data_type": "number",
     "is_primary": false
   },
@@ -235,7 +235,7 @@
   },
   {
     "column_name": "Nomor Dokumen",
-    "display_name": "Sertifikat",
+    "display_name": "Nomor Dokumen",
     "data_type": "text",
     "is_primary": false
   },

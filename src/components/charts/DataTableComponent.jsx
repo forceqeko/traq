@@ -36,7 +36,7 @@ export default function DataTableComponent({
     return columnMap[key] || key;
   };
 
-  const isAggregate = tableMode === 'aggregate' || (groupBy && !columns?.length);
+  const isAggregate = tableMode === 'aggregate';
   const activeMetrics = metrics && metrics.length > 0 ? metrics : ['certs', 'rows', 'volume', 'value'];
 
   // Smart Effective Sort Determination (Aligns with user click or active visible metrics)
@@ -569,9 +569,8 @@ export default function DataTableComponent({
     },
   };
 
-  // Raw data keys extraction
-  const sampleRow = data?.[0]?.row_data || data?.[0] || {};
-  const rawKeys = columns && columns.length > 0 ? columns : Object.keys(sampleRow).slice(0, 8);
+  // Raw data keys extraction (strictly use selected columns only)
+  const rawKeys = Array.isArray(columns) ? columns : [];
 
   const getRawVal = (row, key) => {
     if (!row) return '';
@@ -773,6 +772,15 @@ export default function DataTableComponent({
                 </tr>
               </tfoot>
             </>
+          ) : rawKeys.length === 0 ? (
+            /* ================= RAW DETAIL TABLE (NO COLUMNS SELECTED) ================= */
+            <tbody>
+              <tr>
+                <td style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Belum ada kolom rincian yang dipilih. Silakan pilih minimal 1 kolom di pengaturan visualisasi.
+                </td>
+              </tr>
+            </tbody>
           ) : (
             /* ================= RAW DETAIL TABLE ================= */
             <>

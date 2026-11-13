@@ -366,6 +366,18 @@ export default function ChartBuilderModal({
 
   const allXOptions = [...standardXColumns, ...dynamicXColumns];
 
+  // Raw Table: include ALL master data columns (text, numeric, currency, date) without excluding numbers
+  const allMasterTableColumns = useMemo(() => {
+    const standardKeys = new Set(standardXColumns.map((c) => (c.key || '').toLowerCase()));
+    const additionalCols = (columns || [])
+      .filter((c) => c && c.column_name && !standardKeys.has((c.column_name || '').toLowerCase()))
+      .map((c) => ({
+        key: c.column_name,
+        label: c.display_name || c.column_name,
+      }));
+    return [...standardXColumns, ...additionalCols];
+  }, [columns]);
+
   const standardYColumns = [
     { key: 'Frekuensi', label: 'Frekuensi Sertifikat (Nomor Dokumen - Unique)', type: 'count' },
     { key: 'Volume', label: 'Berat Akhir Terkonversi Kg (Netto P8)', type: 'number' },
@@ -1049,14 +1061,52 @@ export default function ChartBuilderModal({
                           </div>
 
                           <div className="form-group">
-                            <label className="form-label" style={{ fontWeight: 600 }}>Pilih Kolom Data Rincian</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.35rem', maxHeight: '180px', overflowY: 'auto' }}>
-                              {allXOptions.map((col) => {
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              <label className="form-label" style={{ fontWeight: 600, margin: 0 }}>
+                                Pilih Kolom Data Rincian ({tableColumns.length} dipilih dari {allMasterTableColumns.length} kolom)
+                              </label>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setTableColumns(allMasterTableColumns.map((c) => c.key))}
+                                  style={{
+                                    fontSize: '0.7rem',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid var(--border-subtle)',
+                                    backgroundColor: 'var(--surface-1)',
+                                    color: 'var(--primary)',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  Pilih Semua
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setTableColumns([])}
+                                  style={{
+                                    fontSize: '0.7rem',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid var(--border-subtle)',
+                                    backgroundColor: 'var(--surface-1)',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Hapus Pilihan
+                                </button>
+                              </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.35rem', maxHeight: '240px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                              {allMasterTableColumns.map((col) => {
                                 const isChecked = tableColumns.includes(col.key);
                                 return (
                                   <div
                                     key={col.key}
                                     onClick={() => toggleTableColumn(col.key)}
+                                    title={col.label}
                                     style={{
                                       padding: '0.35rem 0.5rem',
                                       borderRadius: 'var(--radius-sm)',
@@ -1066,6 +1116,7 @@ export default function ChartBuilderModal({
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: '0.35rem',
+                                      userSelect: 'none',
                                     }}
                                   >
                                     {isChecked ? <CheckSquare size={13} color="var(--primary)" /> : <Square size={13} color="var(--text-muted)" />}

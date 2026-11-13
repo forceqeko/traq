@@ -1,0 +1,380 @@
+[
+  {
+    "column_name": "Harga Barang (Rp)",
+    "display_name": "Harga Barang",
+    "data_type": "currency",
+    "is_primary": true
+  },
+  {
+    "column_name": "Komoditas",
+    "display_name": "Komoditas",
+    "data_type": "text",
+    "is_primary": true
+  },
+  {
+    "column_name": "No. K.1.1",
+    "display_name": "No.K.1.1",
+    "data_type": "text",
+    "is_primary": true
+  },
+  {
+    "column_name": "Pelabuhan Asal",
+    "display_name": "Pelabuhan Asal",
+    "data_type": "text",
+    "is_primary": true
+  },
+  {
+    "column_name": "Pelabuhan Tujuan",
+    "display_name": "Pelabuhan Tujuan",
+    "data_type": "text",
+    "is_primary": true
+  },
+  {
+    "column_name": "Pemohon",
+    "display_name": "Pemohon",
+    "data_type": "text",
+    "is_primary": true
+  },
+  {
+    "column_name": "Satpel",
+    "display_name": "Satpel",
+    "data_type": "text",
+    "is_primary": true
+  },
+  {
+    "column_name": "Vol P1",
+    "display_name": "Vol P1",
+    "data_type": "number",
+    "is_primary": true
+  },
+  {
+    "column_name": "Alamat Pemohon",
+    "display_name": "Alamat Pemohon",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Alamat Penerima",
+    "display_name": "Alamat Penerima",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Alamat Pengirim",
+    "display_name": "Alamat Pengirim",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Alamat Tempat Periksa",
+    "display_name": "Alamat Tempat Periksa",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Daerah Asal",
+    "display_name": "Daerah Asal",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Daerah Tujuan",
+    "display_name": "Daerah Tujuan",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Dokumen Pendukung",
+    "display_name": "Dokumen Pendukung",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Identitas Pemohon",
+    "display_name": "Identitas Pemohon",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Identitas Penerima",
+    "display_name": "Identitas Penerima",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Identitas Pengirim",
+    "display_name": "Identitas Pengirim",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Jenis Kemasan",
+    "display_name": "Jenis Kemasan",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Jumlah Kemasan",
+    "display_name": "Jumlah Kemasan",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Klasifikasi",
+    "display_name": "Klasifikasi",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Kode HS",
+    "display_name": "Kode HS",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Kode HS Lainnya",
+    "display_name": "Kode HS Lainnya",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Kontainer",
+    "display_name": "Kontainer",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Moda Alat Angkut",
+    "display_name": "Moda Alat Angkut",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Nama Alat Angkut",
+    "display_name": "Nama Alat Angkut",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Nama Tercetak",
+    "display_name": "Nama Tercetak",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Negara Asal",
+    "display_name": "Negara Asal",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Negara Tujuan",
+    "display_name": "Negara Tujuan",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P1",
+    "display_name": "Netto P1",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P2",
+    "display_name": "Netto P2",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P3",
+    "display_name": "Netto P3",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P4",
+    "display_name": "Netto P4",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P5",
+    "display_name": "Netto P5",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P6",
+    "display_name": "Netto P6",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P7",
+    "display_name": "Netto P7",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Netto P8",
+    "display_name": "Volume",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "No.",
+    "display_name": "No.",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "No. Aju",
+    "display_name": "No. Aju",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Nomor Dokumen",
+    "display_name": "Sertifikat",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Nomor Seri",
+    "display_name": "Nomor Seri",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Nomor Voyage",
+    "display_name": "Nomor Voyage",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Penerima",
+    "display_name": "Penerima",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Pengajuan via",
+    "display_name": "Pengajuan via",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Pengirim",
+    "display_name": "Pengirim",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Satuan Bruto",
+    "display_name": "Satuan Bruto",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Satuan Lain",
+    "display_name": "Satuan Lain",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Satuan Netto",
+    "display_name": "Satuan Netto",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Tanda Kemasan",
+    "display_name": "Tanda Kemasan",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Tempat Periksa",
+    "display_name": "Tempat Periksa",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Tgl Aju",
+    "display_name": "Tgl Aju",
+    "data_type": "date",
+    "is_primary": false
+  },
+  {
+    "column_name": "Tgl Dokumen",
+    "display_name": "Tgl Dokumen",
+    "data_type": "date",
+    "is_primary": false
+  },
+  {
+    "column_name": "Tgl K.1.1",
+    "display_name": "Tgl K.1.1",
+    "data_type": "date",
+    "is_primary": false
+  },
+  {
+    "column_name": "Tgl Periksa",
+    "display_name": "Tgl Periksa",
+    "data_type": "date",
+    "is_primary": false
+  },
+  {
+    "column_name": "UPT",
+    "display_name": "UPT",
+    "data_type": "text",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol Lain",
+    "display_name": "Vol Lain",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P2",
+    "display_name": "Vol P2",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P3",
+    "display_name": "Vol P3",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P4",
+    "display_name": "Vol P4",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P5",
+    "display_name": "Vol P5",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P6",
+    "display_name": "Vol P6",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P7",
+    "display_name": "Vol P7",
+    "data_type": "number",
+    "is_primary": false
+  },
+  {
+    "column_name": "Vol P8",
+    "display_name": "Vol P8",
+    "data_type": "number",
+    "is_primary": false
+  }
+]

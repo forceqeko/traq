@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import fallbackMasterColumns from '@/lib/data/masterColumnRegistry.json';
 
 export async function getColumnRegistry(datasetId = null) {
   try {
@@ -11,13 +12,15 @@ export async function getColumnRegistry(datasetId = null) {
 
     const { data, error } = await query;
     if (error || !data || data.length === 0) {
-      // If table is empty, auto-sync from upload_history
-      return await autoSyncFromUploadHistory();
+      // If table is empty or unauthenticated, try upload_history autoSync or fallback to masterColumnRegistry
+      const synced = await autoSyncFromUploadHistory();
+      if (synced && synced.length > 0) return synced;
+      return fallbackMasterColumns || [];
     }
     return data;
   } catch (err) {
     console.warn('Get column registry fallback:', err.message);
-    return [];
+    return fallbackMasterColumns || [];
   }
 }
 
